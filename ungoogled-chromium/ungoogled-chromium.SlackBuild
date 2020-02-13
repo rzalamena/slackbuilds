@@ -1,0 +1,601 @@
+#!/bin/sh
+
+# Slackware build script for ungoogled-chromium.
+
+# Copyright (c) 2020 Rafael F. Zalamena
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of
+# this software and associated documentation files (the “Software”), to deal in
+# the Software without restriction, including without limitation the rights to
+# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+# the Software, and to permit persons to whom the Software is furnished to do so,
+# subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+# COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+# IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+# Changelog:
+#
+# 2020-02-10:
+#   First version of ungoogled chromium slackbuild based on chromium version
+#   80.0.3987.87 and ungoogled chromium patches 80.0.3987.87-2.
+
+# Quit on errors.
+set -e
+
+# Package details.
+PRGNAM=ungoogled-chromium
+VERSION=${VERSION:-80.0.3987.87}
+REVISION=${REVISION:-2} # ungoogled-chromium's revision.
+BUILD=${BUILD:-1}
+TAG=${TAG:-_rfz}
+
+# User input variables.
+HANGOUTS=${HANGOUTS:-false}
+PDF=${PDF:-true}
+WIDEVINE=${WINEVINE:-true}
+JOBS=${JOBS:-2}
+
+CWD=$(pwd)
+TMP=${TMP:-/tmp}
+PKG=$TMP/package-$PRGNAM
+OUTPUT=${OUTPUT:-/tmp}
+
+PATCHES=(
+  patches/001-fix-char-traits.patch
+  patches/002-fix-include.patch
+  patches/003-fix-incomplete-type.patch
+  patches/004-icu-fix.patch
+  patches/005-icu-fix-2.patch
+  patches/006-fix-system-openjpeg.patch
+  patches/007-fix-system-xml.patch
+  patches/008-remove-shim-hack.patch
+  patches/009-icu-fix-3.patch
+)
+
+echo "Using ${JOBS} simultaneous jobs to build the package"
+
+# Make sure we have the right source code / patches.
+echo "Verifying integrity of source, scripts and patches..."
+sha_match=0
+sha256sum -c SHA256 || sha_match=$?
+if [ $sha_match -ne 0 ]; then
+  echo 'SHA256 sum failed, you have modified files.'
+  echo
+  echo 'Remove the failed file line from SHA256 if you know what you are doing'
+  exit 1
+fi
+
+# Detect architecture.
+if [ -z "$ARCH" ]; then
+  case "$( uname -m )" in
+    i?86) ARCH=i586 ;;
+    arm*) ARCH=arm ;;
+       *) ARCH=$( uname -m ) ;;
+  esac
+fi
+
+if [ "$ARCH" = "i586" ]; then
+  SLKCFLAGS="-O2 -march=i586 -mtune=i686"
+  LIBDIRSUFFIX=""
+elif [ "$ARCH" = "i686" ]; then
+  SLKCFLAGS="-O2 -march=i686 -mtune=i686"
+  LIBDIRSUFFIX=""
+elif [ "$ARCH" = "x86_64" ]; then
+  SLKCFLAGS="-O2 -fPIC"
+  LIBDIRSUFFIX="64"
+else
+  SLKCFLAGS="-O2"
+  LIBDIRSUFFIX=""
+fi
+
+# Silence clang about unknown warnings and make build more pleasant.
+SLKCFLAGS+=" -Wno-unknown-warning-option"
+
+# Clean up and prepare environment.
+rm -rf $PKG
+mkdir -p $TMP $PKG $OUTPUT
+cd $TMP
+rm -rf $PRGNAM-$VERSION
+mkdir $TMP/$PRGNAM-$VERSION
+
+# Extract source code and patches.
+cd $TMP/$PRGNAM-$VERSION
+
+echo "Extracting source code..."
+tar -xzf $CWD/$VERSION-$REVISION.tar.gz
+tar --xz -xf $CWD/chromium-$VERSION.tar.xz
+SRC_DIR=$TMP/$PRGNAM-$VERSION/chromium-$VERSION
+PATCH_DIR=$TMP/$PRGNAM-$VERSION/ungoogled-chromium-$VERSION-$REVISION
+
+# Start patching and configuring chromium sources.
+cd $PATCH_DIR
+./utils/prune_binaries.py $SRC_DIR pruning.list
+./utils/patches.py apply $SRC_DIR patches
+./utils/domain_substitution.py apply \
+  -r domain_regex.list \
+  -f domain_substitution.list \
+  -c $TMP/$PRGNAM-$VERSION/domsubcache.tar.gz \
+  $SRC_DIR
+
+# Go to chromium's source code dir.
+cd $SRC_DIR
+
+# Chrome builds with clang.
+export CC=${ARCH}-slackware-linux-clang CXX=${ARCH}-slackware-linux-clang++ \
+  CFLAGS="${SLKCFLAGS}" CXXFLAGS="${SLKCFLAGS}" AR=llvm-ar NM=llvm-nm
+
+# Bump the file descriptor limit to support linking.
+ulimit -n 4096
+
+mkdir -p $SRC_DIR/out/Default
+cat > $SRC_DIR/out/Default/args.gn <<EOF
+is_clang=true
+clang_use_chrome_plugins=false
+custom_toolchain="//build/toolchain/linux/unbundle:default"
+host_toolchain="//build/toolchain/linux/unbundle:default"
+is_debug=false
+use_allocator="none"
+enable_nacl=false
+use_system_harfbuzz=true
+closure_compile=false
+enable_hangout_services_extension=${HANGOUTS}
+enable_widevine=${WIDEVINE}
+use_cups=true
+use_gnome_keyring=false
+use_kerberos=false
+use_pulseaudio=true
+link_pulseaudio=true
+is_cfi=false
+use_cfi_icall=false
+use_cfi_cast=false
+use_thin_lto=true
+thin_lto_enable_optimizations=true
+optimize_webui=false
+use_gio=false
+use_openh264=true
+use_system_freetype=true
+use_system_libopenjpeg2=true
+use_vaapi=true
+enable_pdf=${PDF}
+use_system_lcms2=${PDF}
+enable_print_preview=${PDF}
+enable_mdns=false
+enable_mse_mpeg2ts_stream_parser=true
+enable_nacl_nonsfi=false
+enable_one_click_signin=false
+enable_reading_list=false
+enable_remoting=false
+enable_reporting=false
+enable_service_discovery=false
+exclude_unwind_tables=true
+use_official_google_api_keys=false
+google_api_key=""
+google_default_client_id=""
+google_default_client_secret=""
+safe_browsing_mode=0
+use_unofficial_version_number=false
+blink_symbol_level=0
+symbol_level=0
+enable_iterator_debugging=false
+enable_swiftshader=false
+is_official_build=true
+use_system_libjpeg=true
+use_system_zlib=false
+rtc_build_examples=false
+fieldtrial_testing_like_official_build=true
+use_gold=false
+use_sysroot=false
+linux_use_bundled_binutils=false
+use_custom_libcxx=false
+use_lld=true
+proprietary_codecs=true
+ffmpeg_branding="Chrome"
+target_cpu="x64"
+treat_warnings_as_errors=false
+fatal_linker_warnings=false
+icu_use_data_file=false
+EOF
+
+# Minimum amount of libraries required to build chromium.
+keeplibs=(
+  base/third_party/cityhash
+  base/third_party/double_conversion
+  base/third_party/dynamic_annotations
+  base/third_party/icu
+  base/third_party/nspr
+  base/third_party/superfasthash
+  base/third_party/symbolize
+  base/third_party/valgrind
+  base/third_party/xdg_mime
+  base/third_party/xdg_user_dirs
+  buildtools/third_party/libc++
+  buildtools/third_party/libc++abi
+  chrome/third_party/mozilla_security_manager
+  courgette/third_party
+  net/third_party/mozilla_security_manager
+  net/third_party/nss
+  net/third_party/quic
+  net/third_party/uri_template
+  third_party/SPIRV-Tools
+  third_party/abseil-cpp
+  third_party/adobe
+  third_party/angle
+  third_party/angle/src/common/third_party/base
+  third_party/angle/src/common/third_party/smhasher
+  third_party/angle/src/common/third_party/xxhash
+  third_party/angle/src/third_party/compiler
+  third_party/angle/src/third_party/libXNVCtrl
+  third_party/angle/src/third_party/trace_event
+  third_party/angle/third_party/glslang
+  third_party/angle/third_party/spirv-headers
+  third_party/angle/third_party/spirv-tools
+  third_party/angle/third_party/vulkan-headers
+  third_party/angle/third_party/vulkan-loader
+  third_party/angle/third_party/vulkan-tools
+  third_party/angle/third_party/vulkan-validation-layers
+  third_party/apple_apsl
+  third_party/axe-core
+  third_party/blink
+  third_party/boringssl
+  third_party/boringssl/src/third_party/fiat
+  third_party/breakpad
+  third_party/breakpad/breakpad/src/third_party/curl
+  third_party/brotli
+  third_party/cacheinvalidation
+  third_party/catapult
+  third_party/catapult/common/py_vulcanize/third_party/rcssmin
+  third_party/catapult/common/py_vulcanize/third_party/rjsmin
+  third_party/catapult/third_party/beautifulsoup4
+  third_party/catapult/third_party/html5lib-python
+  third_party/catapult/third_party/polymer
+  third_party/catapult/third_party/six
+  third_party/catapult/tracing/third_party/d3
+  third_party/catapult/tracing/third_party/gl-matrix
+  third_party/catapult/tracing/third_party/jpeg-js
+  third_party/catapult/tracing/third_party/jszip
+  third_party/catapult/tracing/third_party/mannwhitneyu
+  third_party/catapult/tracing/third_party/oboe
+  third_party/catapult/tracing/third_party/pako
+  third_party/ced
+  third_party/cld_3
+  third_party/closure_compiler
+  third_party/crashpad
+  third_party/crashpad/crashpad/third_party/lss
+  third_party/crashpad/crashpad/third_party/zlib
+  third_party/crc32c
+  third_party/cros_system_api
+  third_party/dav1d
+  third_party/dawn
+  third_party/depot_tools
+  third_party/devscripts
+  third_party/devtools-frontend
+  third_party/devtools-frontend/src/third_party
+  third_party/dom_distiller_js
+  third_party/emoji-segmenter
+  third_party/flatbuffers
+  third_party/glslang
+  third_party/google_input_tools
+  third_party/google_input_tools/third_party/closure_library
+  third_party/google_input_tools/third_party/closure_library/third_party/closure
+  third_party/googletest
+  third_party/hunspell
+  third_party/iccjpeg
+  third_party/inspector_protocol
+  third_party/jinja2
+  third_party/jstemplate
+  third_party/khronos
+  third_party/leveldatabase
+  third_party/libXNVCtrl
+  third_party/libaddressinput
+  third_party/libaom
+  third_party/libaom/source/libaom/third_party/vector
+  third_party/libaom/source/libaom/third_party/x86inc
+  third_party/libgifcodec
+  third_party/libjingle
+  third_party/libphonenumber
+  third_party/libsecret
+  third_party/libsrtp
+  third_party/libsync
+  third_party/libudev
+  third_party/libwebm
+  third_party/libxml/chromium
+  third_party/libyuv
+  third_party/llvm
+  third_party/lss
+  third_party/lzma_sdk
+  third_party/markupsafe
+  third_party/mesa
+  third_party/metrics_proto
+  third_party/modp_b64
+  third_party/nasm
+  third_party/node
+  third_party/node/node_modules/polymer-bundler/lib/third_party/UglifyJS2
+  third_party/one_euro_filter
+  third_party/openscreen
+  third_party/openscreen/src/third_party/tinycbor/src/src
+  third_party/ots
+  third_party/perfetto
+  third_party/pffft
+  third_party/ply
+  third_party/polymer
+  third_party/private-join-and-compute
+  third_party/protobuf
+  third_party/protobuf/third_party/six
+  third_party/pyjson5
+  third_party/qcms
+  third_party/rnnoise
+  third_party/s2cellid
+  third_party/sfntly
+  third_party/simplejson
+  third_party/skia
+  third_party/skia/include/third_party/skcms
+  third_party/skia/include/third_party/vulkan
+  third_party/skia/third_party/skcms
+  third_party/skia/third_party/vulkan
+  third_party/smhasher
+  third_party/speech-dispatcher
+  third_party/spirv-headers
+  third_party/sqlite
+  third_party/swiftshader
+  third_party/swiftshader/third_party/SPIRV-Headers/include/spirv/unified1
+  third_party/swiftshader/third_party/llvm-7.0
+  third_party/swiftshader/third_party/llvm-subzero
+  third_party/swiftshader/third_party/marl
+  third_party/swiftshader/third_party/subzero
+  third_party/ungoogled
+  third_party/usb_ids
+  third_party/usrsctp
+  third_party/vulkan
+  third_party/web-animations-js
+  third_party/webdriver
+  third_party/webrtc
+  third_party/webrtc/common_audio/third_party/fft4g
+  third_party/webrtc/common_audio/third_party/spl_sqrt_floor
+  third_party/webrtc/modules/third_party/fft
+  third_party/webrtc/modules/third_party/g711
+  third_party/webrtc/modules/third_party/g722
+  third_party/webrtc/rtc_base/third_party/base64
+  third_party/webrtc/rtc_base/third_party/sigslot
+  third_party/widevine
+  third_party/woff2
+  third_party/wuffs
+  third_party/xdg-utils
+  third_party/yasm/run_yasm.py
+  third_party/zlib/google
+  tools/grit/third_party/six
+  url/third_party/mozilla
+  v8/src/third_party/siphash
+  v8/src/third_party/utf8-decoder
+  v8/src/third_party/valgrind
+  v8/third_party/inspector_protocol
+  v8/third_party/v8
+)
+
+# 2020-02-10:
+#   Slackware64-current doesn't ship these (except for zlib, but it was not
+#   compiled with minizip).
+keeplibs+=(
+  third_party/jsoncpp
+  third_party/openh264
+  third_party/re2
+  third_party/snappy
+  third_party/zlib
+)
+
+# Use system provided libraries by default.
+systemlibs=(
+  flac
+  fontconfig
+  libdrm
+  libpng
+  libwebp
+  libxml
+  libxslt
+  yasm
+)
+
+# 2020-02-12:
+#  It is possible to use the built-ins, however you must remove the system
+#  patches. Since we want to use less Google source as possible, lets just
+#  default to system libraries.
+systemlibs+=(
+  ffmpeg
+  freetype
+  harfbuzz-ng
+  icu
+  libevent
+  libjpeg
+  libvpx
+  opus
+)
+
+# Remove the libraries above and uncomment below to use Google's version.
+# keeplibs+=(
+#   base/third_party/libevent
+#   third_party/ffmpeg
+#   third_party/freetype
+#   third_party/harfbuzz-ng
+#   third_party/icu
+#   third_party/libvpx
+#   third_party/libvpx/source/libvpx/third_party/x86inc
+#   third_party/opus
+#   third_party/pdfium/third_party/libopenjpeg20
+# )
+
+# Add PDF reading support? Otherwise just remove them.
+if [ $PDF = 'true' ]; then
+  keeplibs+=(
+    third_party/pdfium
+    third_party/pdfium/third_party/agg23
+    third_party/pdfium/third_party/base
+    third_party/pdfium/third_party/bigint
+    third_party/pdfium/third_party/freetype
+    third_party/pdfium/third_party/lcms
+    third_party/pdfium/third_party/libpng16
+    third_party/pdfium/third_party/libtiff
+    third_party/pdfium/third_party/skia_shared
+  )
+fi
+
+# Symlink system nodejs binaries to compile JavaScript part.
+mkdir -pv third_party/node/linux/node-linux-x64/bin
+ln -sv $(which node) third_party/node/linux/node-linux-x64/bin/node
+
+# Apply system libraries use fixes.
+for patch in ${PATCHES[@]}; do
+  patch -p 0 -i ${CWD}/${patch}
+done
+
+# Build 'gn' so we can generate ninja files.
+./tools/gn/bootstrap/bootstrap.py --skip-generate-buildfiles -j${JOBS} \
+  -o out/Default/
+
+# Remove bundled libraries if not used.
+./build/linux/unbundle/remove_bundled_libraries.py --do-remove ${keeplibs[@]}
+./build/linux/unbundle/replace_gn_files.py --system-libraries ${systemlibs[@]}
+
+# Generate the ninja files.
+./out/Default/gn gen out/Default --fail-on-unused-args
+
+# Start building the source code.
+ninja -C out/Default -j${JOBS} mksnapshot
+ninja -C out/Default -j${JOBS} v8_context_snapshot_generator
+ninja -C out/Default -j${JOBS} chrome
+
+# Install man page.
+install -d ${PKG}/usr/share/man/man1 \
+  --owner root --group root --mode 0755 -v
+expr ='s/@@PACKAGE@@/chromium-browser/g;'
+expr+='s/@@MENUNAME@@/Chromium/g;'
+sed -e "${expr}" \
+  ${SRC_DIR}/chrome/app/resources/manpage.1.in \
+  | gzip -9 > ${PKG}/usr/share/man/man1/chromium-browser.1.gz
+ln -sv /usr/share/man/man1/chromium-browser.1.gz \
+  ${PKG}/usr/share/man/man1/chromium.1.gz
+
+# Install application file.
+install -d ${PKG}/usr/share/applications \
+  --owner root --group root --mode 0755 -v
+expr ='s/@@MENUNAME@@/Chromium/g;'
+expr+='s/@@USR_BIN_SYMLINK_NAME@@/chromium-browser/g;'
+expr+='s/@@PACKAGE@@/chromium-browser/g;'
+expr+='s|\(^Exec=\)/usr/bin/|\1|g;'
+sed -e "${expr}" \
+  ${SRC_DIR}/chrome/installer/linux/common/desktop.template \
+  > ${PKG}/usr/share/applications/chromium-browser.desktop
+
+# Install binaries.
+install -d ${PKG}/usr/lib${LIBDIRSUFFIX}/chromium-browser \
+  --owner root --group root --mode 0755 -v
+install ${SRC_DIR}/out/Default/chrome \
+  ${PKG}/usr/lib${LIBDIRSUFFIX}/chromium-browser \
+  --owner root --group root --mode 0755 -v
+install ${SRC_DIR}/out/Default/*.bin \
+  ${SRC_DIR}/out/Default/*.pak \
+  ${SRC_DIR}/out/Default/*.so \
+  ${PKG}/usr/lib${LIBDIRSUFFIX}/chromium-browser \
+  --owner root --group root --mode 0644 -v
+
+# Install locales.
+install -d ${PKG}/usr/lib${LIBDIRSUFFIX}/chromium-browser/locales
+for file in $(find ${SRC_DIR}/out/Default/locales -type f); do
+  install $file ${PKG}/usr/lib${LIBDIRSUFFIX}/chromium-browser/locales \
+    --owner root --group root --mode 0644 -v
+done
+
+# Install chromium resources.
+install -d ${PKG}/usr/lib${LIBDIRSUFFIX}/chromium-browser/resources
+for dir in $(cd ${SRC_DIR}/out/Default/resources; find * -type d); do
+  install -d ${PKG}/usr/lib${LIBDIRSUFFIX}/chromium-browser/resources/${dir} \
+    --owner root --group root --mode 0755 -v
+done
+for file in $(find ${SRC_DIR}/out/Default/resources -type f); do
+  install ${file} ${PKG}/usr/lib${LIBDIRSUFFIX}/chromium-browser/resources \
+    --owner root --group root --mode 0644 -v
+done
+
+# install chromium-launcher + symbolic links.
+install ${CWD}/chromium-launcher.sh \
+  ${PKG}/usr/lib${LIBDIRSUFFIX}/chromium-browser/chromium-launcher.sh \
+  --owner root --group root --mode 0755 -v
+
+install -d ${PKG}/usr/bin
+for link in ${PKG}/usr/bin/chromium-browser ${PKG}/usr/bin/chromium; do
+  ln -sv /usr/lib${LIBDIRSUFFIX}/chromium-browser/chromium-launcher.sh $link
+done
+
+# Generate the default configuration file.
+install -d ${PKG}/etc/chromium --owner root --group root --mode 0755 -v
+cat > ${PKG}/etc/chromium/default <<EOF
+# Default settings for ungoogled-chromium. This file is sourced by /bin/bash
+# from the chromium launcher.
+
+# Uncomment this to spoof timezone to UTC
+#export TZ='Etc/UTC'
+
+# Options to pass to ungoogled-chromium.
+# See https://github.com/Eloston/ungoogled-chromium#features for additional
+# command-line switches.
+#CHROMIUM_FLAGS=""
+EOF
+
+# Install all icon sizes.
+for size in 16 24 32 48 64 128 256; do
+  if [ $size -eq 16 -o $size -eq 32 ]; then
+    install -D \
+      ${SRC_DIR}/chrome/app/theme/default_100_percent/chromium/product_logo_${size}.png \
+      ${PKG}/usr/share/icons/hicolor/${size}x${size}/apps/chromium-browser.png \
+      --owner root --group root --mode 0644 -v
+  else
+    install -D ${SRC_DIR}/chrome/app/theme/chromium/product_logo_${size}.png \
+      ${PKG}/usr/share/icons/hicolor/${size}x${size}/apps/chromium-browser.png \
+      --owner root --group root --mode 0644 -v
+  fi
+done
+
+# Strip binaries.
+
+# Copy Slackware package related files.
+install -d ${PKG}/usr/doc/$PRGNAM-$VERSION/patches \
+  --owner root --group root --mode 0755 -v
+cat ${SRC_DIR}/LICENSE > $PKG/usr/doc/$PRGNAM-$VERSION/LICENSE
+cat $CWD/$PRGNAM.SlackBuild > $PKG/usr/doc/$PRGNAM-$VERSION/$PRGNAM.SlackBuild
+install -D $CWD/patches/* ${PKG}/usr/doc/$PRGNAM-$VERSION/patches/ \
+  --owner root --group root --mode 0644 -v
+
+mkdir -p $PKG/install
+cat $CWD/slack-desc > $PKG/install/slack-desc
+
+# Update the desktop database:
+if [ -x usr/bin/update-desktop-database ]; then
+  chroot . /usr/bin/update-desktop-database \
+    usr/share/applications > /dev/null 2>&1
+fi
+
+# Update hicolor theme cache:
+if [ -d usr/share/icons/hicolor ]; then
+  if [ -x /usr/bin/gtk-update-icon-cache ]; then
+    chroot . /usr/bin/gtk-update-icon-cache -f \
+      -t usr/share/icons/hicolor 1> /dev/null 2> /dev/null
+  fi
+fi
+
+# Update the mime database:
+if [ -x usr/bin/update-mime-database ]; then
+  chroot . /usr/bin/update-mime-database usr/share/mime >/dev/null 2>&1
+fi
+
+# Generate package, sha256 hash and txt file.
+cd $PKG
+pkgfile="$OUTPUT/$PRGNAM-$VERSION-$ARCH-$BUILD$TAG.${PKGTYPE:-txz}"
+/sbin/makepkg -l y -c n $pkgfile
+sha256sum $pkgfile > $pkgfile.sha256
+grep "^${PRGNAM}" ${PKG}/install/slack-desc > $pkgfile.txt

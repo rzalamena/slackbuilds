@@ -1,0 +1,19 @@
+# HOW TO EDIT THIS FILE:
+# The "handy ruler" below makes it easier to edit a package description.
+# Line up the first '|' above the ':' following the base package name, and
+# the '|' on the right side marks the last column you can put a character in.
+# You must make exactly 11 lines for the formatting to be correct.  It's also
+# customary to leave one space after the ':' except on otherwise blank lines.
+
+                  |-----handy-ruler------------------------------------------------------|
+ungoogled-chromium: ungoogled-chromium (Chromium web browser without Google integration)
+ungoogled-chromium:
+ungoogled-chromium: Ungoogled Chromium is a set of patches that removes Google
+ungoogled-chromium: integration code, some pre made binaries on Chromium sources and
+ungoogled-chromium: disables many privacy intrusive settings by default.
+ungoogled-chromium:
+ungoogled-chromium: Chromium home: https://www.chromium.org/
+ungoogled-chromium: ungoogled chromium home: https://ungoogled-software.github.io/
+ungoogled-chromium:
+ungoogled-chromium:
+ungoogled-chromium:

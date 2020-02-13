@@ -1,0 +1,10 @@
+--- tools/generate_shim_headers/generate_shim_headers.py.orig	2020-02-03 22:55:51.000000000 -0300
++++ tools/generate_shim_headers/generate_shim_headers.py	2020-02-10 17:58:52.488889028 -0300
+@@ -70,7 +70,6 @@
+         if not os.path.exists(header_dir):
+           os.makedirs(header_dir)
+         with open(header_path, 'w') as f:
+-          f.write(SHIM_TEMPLATE)
+ 
+           if options.define:
+             for define in options.define:

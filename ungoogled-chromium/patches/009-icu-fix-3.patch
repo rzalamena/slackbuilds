@@ -1,0 +1,15 @@
+--- chrome/browser/ui/views/native_file_system/native_file_system_usage_bubble_view.cc~	2020-02-03 22:56:11.000000000 -0300
++++ chrome/browser/ui/views/native_file_system/native_file_system_usage_bubble_view.cc	2020-02-11 17:14:18.488188493 -0300
+@@ -26,9 +26,9 @@
+ #include "content/public/browser/render_frame_host.h"
+ #include "content/public/browser/render_process_host.h"
+ #include "content/public/browser/web_contents.h"
+-#include "third_party/icu/source/common/unicode/unistr.h"
+-#include "third_party/icu/source/common/unicode/utypes.h"
+-#include "third_party/icu/source/i18n/unicode/listformatter.h"
++#include "unicode/unistr.h"
++#include "unicode/utypes.h"
++#include "unicode/listformatter.h"
+ #include "ui/base/l10n/l10n_util.h"
+ #include "ui/gfx/paint_vector_icon.h"
+ #include "ui/views/controls/button/image_button.h"
