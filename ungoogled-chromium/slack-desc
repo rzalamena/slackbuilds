@@ -8,12 +8,11 @@
                   |-----handy-ruler------------------------------------------------------|
 ungoogled-chromium: ungoogled-chromium (Chromium web browser without Google integration)
 ungoogled-chromium:
-ungoogled-chromium: Ungoogled Chromium is a set of patches that removes Google
-ungoogled-chromium: integration code, some pre made binaries on Chromium sources and
-ungoogled-chromium: disables many privacy intrusive settings by default.
+ungoogled-chromium: Ungoogled chromium is a collection of patches that remove Google
+ungoogled-chromium: integration, tune privacy settings and remove blobs from source
+ungoogled-chromium: code.
 ungoogled-chromium:
 ungoogled-chromium: Chromium home: https://www.chromium.org/
 ungoogled-chromium: ungoogled chromium home: https://ungoogled-software.github.io/
-ungoogled-chromium:
 ungoogled-chromium:
 ungoogled-chromium:
