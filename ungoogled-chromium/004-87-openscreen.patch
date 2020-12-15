@@ -8,8 +8,8 @@ Fixes the following errors:
 > void GenerateRandomBytes(uint8_t* out, int len);
 >                          ^
 
---- third_party/openscreen/src/util/crypto/random_bytes.h.orig	2020-12-10 09:18:10.255337218 -0300
-+++ third_party/openscreen/src/util/crypto/random_bytes.h	2020-12-10 09:18:34.219336083 -0300
+--- a/third_party/openscreen/src/util/crypto/random_bytes.h.orig	2020-12-10 09:18:10.255337218 -0300
++++ b/third_party/openscreen/src/util/crypto/random_bytes.h	2020-12-10 09:18:34.219336083 -0300
 @@ -6,6 +6,7 @@
  #define UTIL_CRYPTO_RANDOM_BYTES_H_
  

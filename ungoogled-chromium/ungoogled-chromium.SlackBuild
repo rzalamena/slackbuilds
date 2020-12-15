@@ -71,6 +71,10 @@ SLKCFLAGS+=" -Wno-unknown-warning-option"
 export CC=${ARCH}-slackware-linux-clang CXX=${ARCH}-slackware-linux-clang++ \
   CFLAGS="${SLKCFLAGS}" CXXFLAGS="${SLKCFLAGS}" AR=llvm-ar NM=llvm-nm
 
+PATCHES='001-87-ozone.patch 002-87-vaapi.patch 003-87-vdpau.patch'
+PATCHES="$PATCHES 004-87-openscreen.patch 005-87-cursorfactory.patch"
+PATCHES="$PATCHES 006-87-serviceworkercontainerhist-crash.patch"
+
 CWD=$(pwd)
 TMP=${TMP:-/tmp}
 PKG=$TMP/package-$PKGNAM
@@ -96,13 +100,18 @@ $SRCDIR/utils/domain_substitution.py \
   -f $SRCDIR/domain_substitution.list \
   -c domainsubcache.tar.gz ./
 
+# Apply local patches:
+for patch in $PATCHES; do
+  patch -p1 -i $CWD/$patch
+done
+
 # Prepare build directory to use node.
 mkdir -p third_party/node/linux/node-linux-x64/bin
 ln -s $(which node) third_party/node/linux/node-linux-x64/bin
 
 # Allow building against system libraries in official builds
 sed -i 's/OFFICIAL_BUILD/GOOGLE_CHROME_BUILD/' \
-    tools/generate_shim_headers/generate_shim_headers.py
+  tools/generate_shim_headers/generate_shim_headers.py
 
 # Compile `gn` so we can generate the build files.
 mkdir -p out/Default
@@ -112,9 +121,6 @@ tools/gn/bootstrap/bootstrap.py \
 # Copy configuration and generate build files.
 cp -v $CWD/args.gn out/Default/args.gn
 ./out/Default/gn gen out/Default --fail-on-unused-args
-
-# Apply local patches:
-patch -p0 -i $CWD/openscreen.patch
 
 # Compile chromium:
 ninja -C out/Default $NUMJOBS chrome chrome_sandbox chromedriver
@@ -152,7 +158,7 @@ sed -e 's/@@PACKAGE@@/chromium-browser/g;s/@@MENUNAME@@/Chromium/g;' \
   $BUILDDIR/chrome/app/resources/manpage.1.in \
   | gzip -9 > $PKG/usr/share/man/man1/chromium-browser.1.gz
 ln -sv /usr/share/man/man1/chromium-browser.1.gz \
-   $PKG/usr/share/man/man1/chromium.1.gz
+  $PKG/usr/share/man/man1/chromium.1.gz
 
 # Install application file.
 mkdir -p $PKG/usr/share/applications
@@ -179,14 +185,14 @@ done
 
 # Install launcher script:
 install -o root -g root -m 0755 -v -D \
-        $CWD/chromium-launcher.sh \
-        $PKG/usr/lib${LIBDIRSUFFIX}/chromium-browser/chromium-launcher.sh
+  $CWD/chromium-launcher.sh \
+  $PKG/usr/lib${LIBDIRSUFFIX}/chromium-browser/chromium-launcher.sh
 
 mkdir -p $PKG/usr/bin
 ln -sv /usr/lib${LIBDIRSUFFIX}/chromium-browser/chromium-launcher.sh \
-   $PKG/usr/bin/chromium
+  $PKG/usr/bin/chromium
 ln -sv /usr/lib${LIBDIRSUFFIX}/chromium-browser/chromium-launcher.sh \
-   $PKG/usr/bin/chromium-browser
+  $PKG/usr/bin/chromium-browser
 
 # Install configuration file:
 install -o root -g root -m 0644 -v -D \
@@ -213,8 +219,14 @@ install -o root -g root -m 0644 -v -D \
   $CWD/slack-desc \
   $CWD/chromium-launcher.sh \
   $CWD/args.gn \
-  $CWD/chromium-default \
-  $CWD/openscreen.patch
+  $CWD/chromium-default
+
+for patch in $PATCHES; do
+  install -o root -g root -m 0644 -v -D \
+    -t $PKG/usr/doc/$PKGNAM-${VERSION}_${VERSION_REV} \
+    $CWD/$patch
+done
+
 install -o root -g root -m 0755 -v -D \
   -t $PKG/usr/doc/$PKGNAM-${VERSION}_${VERSION_REV} \
   $CWD/ungoogled-chromium.SlackBuild
