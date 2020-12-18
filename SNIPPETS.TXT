@@ -1,0 +1,81 @@
+Snippets
+========
+
+Useful snippets to use with SlackBuilds.
+
+SlackBuild Initial Boilerplate
+------------------------------
+
+This is a common pattern present on most SlackBuilds:
+
+  # Define the package name:
+  PKGNAM=package-name
+  # Define package version:
+  VERSION=${VERSION:-1.2.3}
+  # Build number:
+  BUILD=${BUILD:-1}
+  # Amount of parallel build jobs.
+  NUMJOBS=${NUMJOBS:-"-j2"}
+
+  # If ARCH is unset, select one.
+  if [ -z "$ARCH" ]; then
+    case "$(uname -m)" in
+      i?86) ARCH=i586 ;;
+      arm*) ARCH=arm ;;
+      *) ARCH=$(uname -m)
+    esac
+  fi
+
+  # Select compilation flags.
+  if [ "$ARCH" = "i586" ]; then
+    SLKCFLAGS="-O2 -march=i586 -mtune=i686"
+    LIBDIRSUFFIX=""
+  elif [ "$ARCH" = "i686" ]; then
+    SLKCFLAGS="-O2 -march=i686 -mtune=i686"
+    LIBDIRSUFFIX=""
+  elif [ "$ARCH" = "x86_64" ]; then
+    SLKCFLAGS="-O2 -fPIC"
+    LIBDIRSUFFIX="64"
+  else
+    SLKCFLAGS="-O2"
+    LIBDIRSUFFIX=""
+  fi
+
+  # Set important variables: CWD (current working directory), TMP (temporary
+  # build directory), PKG (package installation directory).
+  CWD=$(pwd)
+  TMP=${TMP:-/tmp}
+  PKG=$TMP/package-$PKGNAM
+
+  # Always clean up the package installation directory.
+  rm -rf $PKG
+  mkdir -p $PKG
+
+  # Your slackbuild code. Don't forget to call `make` with `NUMJOBS`.
+
+  # Copy Slackware package related files:
+  install -o root -g root -m 0644 -v -D \
+    $CWD/slack-desc $PKG/install/slack-desc
+
+  # Create package from temporary directory:
+  cd $PKG
+  /sbin/makepkg -l y -c n $TMP/$PKGNAM-$VERSION-$ARCH-$BUILD.txz
+
+Compressing Man Pages
+---------------------
+
+Here is a one liner to compress all man pages in the package directory:
+
+  find $PKG/usr/share/man -name \*\.? -type f -exec gzip -9 {} \+
+
+Strip All Binaries and Libraries
+--------------------------------
+
+Iterate over all files in the install directory looking for binaries and
+shared libraries then strip unneeded data:
+
+  find $PKG -type f -exec file {} \+ \
+    | egrep '(executable|shared object)' \
+    | grep 'ELF' \
+    | cut -d ':' -f 1 \
+    | xargs strip --strip-unneeded
