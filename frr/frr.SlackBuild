@@ -1,0 +1,124 @@
+#!/bin/sh -e
+
+# Slackware build script for FRR
+
+# Copyright (C) 2020 Rafael F. Zalamena
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+# Change log
+#
+# 2020-12-16:
+#   First version of FRR slackbuild for version 7.5.
+
+PKGNAM=frr
+VERSION=${VERSION:-7.5}
+BUILD=${BUILD:-1}
+
+NUMJOBS=${NUMJOBS:-"-j2"}
+
+if [ -z "$ARCH" ]; then
+  case "$(uname -m)" in
+    i?86) ARCH=i586 ;;
+    arm*) ARCH=arm ;;
+    *) ARCH=$(uname -m)
+  esac
+fi
+
+if [ "$ARCH" = "i586" ]; then
+  SLKCFLAGS="-O2 -march=i586 -mtune=i686"
+  LIBDIRSUFFIX=""
+elif [ "$ARCH" = "i686" ]; then
+  SLKCFLAGS="-O2 -march=i686 -mtune=i686"
+  LIBDIRSUFFIX=""
+elif [ "$ARCH" = "x86_64" ]; then
+  SLKCFLAGS="-O2 -fPIC"
+  LIBDIRSUFFIX="64"
+else
+  SLKCFLAGS="-O2"
+  LIBDIRSUFFIX=""
+fi
+
+CWD=$(pwd)
+TMP=${TMP:-/tmp}
+PKG=$TMP/package-$PKGNAM
+
+rm -rf $PKG
+mkdir -p $PKG
+
+# Extract source code and patches.
+cd $TMP
+tar --xz -xf $CWD/$PKGNAM-$VERSION.tar.xz
+
+cd $TMP/$PKGNAM-$VERSION
+./configure \
+  --enable-multipath=64 \
+  --prefix=/usr \
+  --localstatedir=/var/run/frr \
+  --sysconfdir=/etc/frr \
+  --enable-exampledir=/usr/share/doc/$PKGNAM-$VERSION/examples \
+  --sbindir=/usr/lib/frr \
+  --enable-user=frr \
+  --enable-group=frr \
+  --enable-vty-group=frrvty \
+  --enable-configfile-mask=0640 \
+  --enable-logfile-mask=0640 \
+  --enable-fpm
+
+make $NUMJOBS
+make DESTDIR=$PKG install
+
+# Strip binaries:
+find $PKG -type f -exec file {} \+ \
+  | egrep '(executable|shared object)' \
+  | grep 'ELF' \
+  | cut -d ':' -f 1 \
+  | xargs strip --strip-unneeded
+
+# Install init file:
+install -m root -g root -m 0644 -v -D $PKG/usr/lib/frr/frrinit.sh \
+  $PKG/etc/rc.d/rc.frr
+rm -v $PKG/usr/lib/frr/frrinit.sh
+
+# Install slackware related files:
+install -o root -g root -m 0644 -v -D $CWD/slack-desc $PKG/install/slack-desc
+
+# Configuration files:
+install -m 775 -o frr -g frr -v -d $PKG/var/log/frr
+install -m 775 -o frr -g frrvty -v -d $PKG/etc/frr
+install -m 640 -o frr -g frrvty -v tools/etc/frr/frr.conf \
+  $PKG/etc/frr/frr.conf
+install -m 640 -o frr -g frr -v tools/etc/frr/frr.conf \
+  $PKG/etc/frr/frr.conf
+install -m 640 -o frr -g frr -v tools/etc/frr/daemons \
+  $PKG/etc/frr/daemons
+
+# slackware files:
+install -o root -g root -m 0644 -v -D \
+  -t $PKG/usr/doc/$PKGNAM-$VERSION \
+  $CWD/slack-desc \
+  COPYING \
+  README.md
+
+install -o root -g root -m 0755 -v -D \
+  -t $PKG/usr/doc/$PKGNAM-$VERSION \
+  $CWD/frr.SlackBuild
+
+cd $PKG
+/sbin/makepkg -l y -c n $TMP/$PKGNAM-$VERSION-$ARCH-$BUILD.txz

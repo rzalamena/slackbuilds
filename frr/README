@@ -1,0 +1,26 @@
+FRRouting
+---------
+
+FRR is free software that implements and manages various IPv4 and IPv6
+routing protocols. It runs on nearly all distributions of Linux and
+BSD and supports all modern CPU architectures.
+
+FRR currently supports the following protocols: BGP, OSPFv2, OSPFv3,
+RIPv1, RIPv2, RIPng, IS-IS, PIM-SM/MSDP, LDP, BFD, Babel, PBR,
+OpenFabric, VRRP, EIGRP (alpha), NHRP (alpha).
+
+Requirements
+------------
+
+Dependencies:
+- libyang (minimum and recommended version: 1.0.184)
+
+User / Group
+------------
+
+Required user/groups for privilege separation:
+
+  # groupadd -g 357 frr
+  # useradd -d /var/run/frr -s /sbin/nologin -u 357 -g frr frr
+  # groupadd -g 358 frrvty
+  # usermod -a -G frrvty frr

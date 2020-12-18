@@ -1,0 +1,8 @@
+PRGNAM="frr"
+VERSION="7.5"
+HOMEPAGE="https://frrouting.org/"
+DOWNLOAD="https://github.com/FRRouting/frr/releases/download/frr-7.5/frr-7.5.tar.xz"
+MD5SUM="b92eb82143f15195cb0095c9db453715"
+REQUIRES="%README%"
+MAINTAINER="Rafael F. Zalamena"
+EMAIL="rzalamena@gmail.com"

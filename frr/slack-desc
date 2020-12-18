@@ -1,0 +1,19 @@
+# HOW TO EDIT THIS FILE:
+# The "handy ruler" below makes it easier to edit a package description.
+# Line up the first '|' above the ':' following the base package name, and
+# the '|' on the right side marks the last column you can put a character in.
+# You must make exactly 11 lines for the formatting to be correct.  It's also
+# customary to leave one space after the ':' except on otherwise blank lines.
+
+   |-----handy-ruler------------------------------------------------------|
+FRR: FRRouting
+FRR:
+FRR: FRR is free software that implements and manages various IPv4 and
+FRR: IPv6 routing protocols. It runs on nearly all distributions of Linux
+FRR: and BSD as well as Solaris and supports all modern CPU architectures.
+FRR:
+FRR: FRR home: https://frrouting.org/
+FRR: FRR GitHub: https://github.com/FRRouting/frr
+FRR:
+FRR:
+FRR:
