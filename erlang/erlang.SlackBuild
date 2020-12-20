@@ -1,0 +1,119 @@
+#!/bin/sh -e
+
+# Slackware build script for erlang
+
+# Copyright (C) 2020 Rafael F. Zalamena
+#
+# Permission to use, copy, modify, and/or distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+# AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+# OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+# PERFORMANCE OF THIS SOFTWARE.
+
+# Change log
+#
+# 2020-12-19:
+#   Initial slackbuild version.
+
+PKGNAM=erlang
+VERSION=${VERSION:-23.2}
+BUILD=${BUILD:-1}
+NUMJOBS="-j$(expr $(nproc) + 1)"
+
+if [ -z "$ARCH" ]; then
+  case "$(uname -m)" in
+    i?86) ARCH=i586 ;;
+    arm*) ARCH=arm ;;
+    *) ARCH=$(uname -m)
+  esac
+fi
+
+if [ "$ARCH" = "i586" ]; then
+  SLKCFLAGS="-O2 -march=i586 -mtune=i686"
+  LIBDIRSUFFIX=""
+elif [ "$ARCH" = "i686" ]; then
+  SLKCFLAGS="-O2 -march=i686 -mtune=i686"
+  LIBDIRSUFFIX=""
+elif [ "$ARCH" = "x86_64" ]; then
+  SLKCFLAGS="-O2 -fPIC"
+  LIBDIRSUFFIX="64"
+else
+  SLKCFLAGS="-O2"
+  LIBDIRSUFFIX=""
+fi
+
+CWD=$(pwd)
+TMP=${TMP:-/tmp}
+PKG=$TMP/package-$PKGNAM
+
+rm -rf $PKG
+mkdir -p $PKG
+
+cd $TMP
+tar -xvzf $CWD/otp_src_$VERSION.tar.gz
+
+# Compile and install erlang:
+SRCDIR=$TMP/otp_src_$VERSION
+cd $SRCDIR
+
+./configure \
+  --prefix=/usr \
+  --libdir=/usr/lib$LIBDIRSUFFIX \
+  --build=$ARCH-slackware-linux
+
+make $NUMJOBS
+make INSTALL_PREFIX=$PKG install
+
+# Install and compress man pages:
+MANDIR=$TMP/erlang-man-pages
+mkdir -p $MANDIR
+cd $MANDIR
+tar -xvzf $CWD/otp_doc_man_$VERSION.tar.gz
+
+for file in $(find man -type f); do
+  install -o root -g root -m 0755 -v -D \
+    $file $PKG/usr/lib$LIBDIRSUFFIX/erlang/$file
+done
+
+# Compress all man pages:
+find $PKG/usr/lib$LIBDIRSUFFIX/erlang/man \
+  -name \*\.? -type f -exec gzip -9 {} \+
+
+# Install environment variables:
+install -o root -g root -m 0755 -v -D \
+  $CWD/erlang-profile.sh \
+  $PKG/etc/profile.d/erlang.sh
+install -o root -g root -m 0755 -v -D \
+  $CWD/erlang-profile.csh \
+  $PKG/etc/profile.d/erlang.csh
+
+# Adjust environment path for 64bit systems.
+if [ "$LIBDIRSUFFIX" = '64' ]; then
+  sed -i 's|/usr/lib/erlang/man|/usr/lib64/erlang/man|' \
+    $PKG/etc/profile.d/erlang.sh
+  sed -i 's|/usr/lib/erlang/man|/usr/lib64/erlang/man|' \
+    $PKG/etc/profile.d/erlang.csh
+fi
+
+# Install slackware related files:
+install -o root -g root -m 0755 -v -D \
+  $CWD/$PKGNAM.SlackBuild \
+  $PKG/usr/doc/$PKGNAM-$VERSION/$PKGNAM.SlackBuild
+install -o root -g root -m 0644 -v -D \
+  -t $PKG/usr/doc/$PKGNAM-$VERSION \
+  $SRCDIR/AUTHORS \
+  $SRCDIR/CONTRIBUTING.md \
+  $SRCDIR/LICENSE.txt \
+  $SRCDIR/README.md
+
+install -o root -g root -m 0644 -v -D \
+  $CWD/slack-desc $PKG/install/slack-desc
+
+cd $PKG
+/sbin/makepkg -l y -c n $TMP/$PKGNAM-$VERSION-$ARCH-$BUILD.txz

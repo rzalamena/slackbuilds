@@ -1,0 +1,19 @@
+# HOW TO EDIT THIS FILE:
+# The "handy ruler" below makes it easier to edit a package description.
+# Line up the first '|' above the ':' following the base package name, and
+# the '|' on the right side marks the last column you can put a character in.
+# You must make exactly 11 lines for the formatting to be correct.  It's also
+# customary to leave one space after the ':' except on otherwise blank lines.
+
+   |-----handy-ruler------------------------------------------------------|
+erlang: Erlang
+erlang:
+erlang: Erlang is a programming language used to build massively scalable
+erlang: soft real-time systems with requirements on high availability.
+erlang: Some of its uses are in telecoms, banking, e-commerce, computer
+erlang: telephony and instant messaging. Erlang's runtime system has
+erlang: built-in support for concurrency, distribution and fault
+erlang: tolerance.
+erlang:
+erlang: Erlang home: https://www.erlang.org/
+erlang:

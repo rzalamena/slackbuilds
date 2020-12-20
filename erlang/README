@@ -1,0 +1,9 @@
+erlang
+======
+
+Required files:
+- http://erlang.org/download/otp_src_23.2.tar.gz
+- http://erlang.org/download/otp_doc_man_23.2.tar.gz
+
+Optional dependency:
+- wxwidgets
