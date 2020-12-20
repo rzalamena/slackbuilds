@@ -79,3 +79,28 @@ shared libraries then strip unneeded data:
     | grep 'ELF' \
     | cut -d ':' -f 1 \
     | xargs strip --strip-unneeded
+
+Installing Files in Hierarchy
+-----------------------------
+
+Change directory to root folder you want to copy, use find to list files in
+their respective directories then call install to copy them:
+
+  for file in $(cd root-dir; find dir -type f); do
+    install -o root -g root -m 0644 -v -D \
+      root-dir/$file $PKG/$file
+  done
+
+Pratical example for visualization: copying man pages.
+
+  $ cd root-dir
+  $ ls
+  man/
+  $ find man -type f
+  man/man3/prog-man.3
+  man/man8/prog-man.8
+  $ for file in $(find man -type f); do
+  > echo "$file -> /tmp/$file"
+  > done
+  man/man3/prog-man.3 -> /tmp/man/man3/prog-man.3
+  man/man8/prog-man.8 -> /tmp/man/man8/prog-man.8
