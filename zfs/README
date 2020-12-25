@@ -1,0 +1,14 @@
+ZFS
+===
+
+OpenZFS is an advanced file system and volume manager which was originally
+developed for Solaris and is now maintained by the OpenZFS community. This
+repository contains the code for running OpenZFS on Linux and FreeBSD.
+
+ZFS home page: https://openzfs.org/wiki/Main_Page
+ZFS GitHub Page: https://github.com/openzfs/zfs
+
+Files
+-----
+
+* https://github.com/openzfs/zfs/releases/download/zfs-2.0.0/zfs-2.0.0.tar.gz
