@@ -15,7 +15,7 @@ This is a common pattern present on most SlackBuilds:
   # Build number:
   BUILD=${BUILD:-1}
   # Amount of parallel build jobs.
-  NUMJOBS=${NUMJOBS:-"-j2"}
+  NUMJOBS=${NUMJOBS:-"-j$(expr $(nproc) + 1)"}
 
   # If ARCH is unset, select one.
   if [ -z "$ARCH" ]; then
@@ -59,7 +59,7 @@ This is a common pattern present on most SlackBuilds:
 
   # Create package from temporary directory:
   cd $PKG
-  /sbin/makepkg -l y -c n $TMP/$PKGNAM-$VERSION-$ARCH-$BUILD.txz
+  /sbin/makepkg -l y -c n $TMP/$PKGNAM-$VERSION-$ARCH-$BUILD.${PKGTYPE:-txz}
 
 Compressing Man Pages
 ---------------------
