@@ -1,0 +1,19 @@
+# HOW TO EDIT THIS FILE:
+# The "handy ruler" below makes it easier to edit a package description.
+# Line up the first '|' above the ':' following the base package name, and
+# the '|' on the right side marks the last column you can put a character in.
+# You must make exactly 11 lines for the formatting to be correct.  It's also
+# customary to leave one space after the ':' except on otherwise blank lines.
+
+   |-----handy-ruler------------------------------------------------------|
+thermald: thermald (Intel thermal daemon)
+thermald:
+thermald: A daemon that controls (P|T)-states of intel processors in order
+thermald: to decrease the temperature.
+thermald:
+thermald: It uses sensors data to throttle and/or disable turbo boost.
+thermald:
+thermald: thermald home: https://github.com/intel/thermal_daemon
+thermald:
+thermald:
+thermald:
