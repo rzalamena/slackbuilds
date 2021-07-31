@@ -3,63 +3,23 @@ Snippets
 
 Useful snippets to use with SlackBuilds.
 
-SlackBuild Initial Boilerplate
-------------------------------
+Source Configuration
+--------------------
 
-This is a common pattern present on most SlackBuilds:
+Configuration options may vary, please check `./configure --help`.
 
-  # Define the package name:
-  PKGNAM=package-name
-  # Define package version:
-  VERSION=${VERSION:-1.2.3}
-  # Build number:
-  BUILD=${BUILD:-1}
-  # Amount of parallel build jobs.
-  NUMJOBS=${NUMJOBS:-"-j$(expr $(nproc) + 1)"}
+	CFLAGS="$SLKCFLAGS" \
+	CXXFLAGS="$SLKCFLAGS" \
+	./configure \
+    --prefix=/usr \
+    --libdir=/usr/lib${LIBDIRSUFFIX} \
+    --sysconfdir=/etc \
+    --localstatedir=/var \
+    --mandir=/usr/man \
+    --docdir=/usr/doc/$PKGNAM-$VERSION \
+    --build=$ARCH-slackware-linux \
+    || exit 1
 
-  # If ARCH is unset, select one.
-  if [ -z "$ARCH" ]; then
-    case "$(uname -m)" in
-      i?86) ARCH=i586 ;;
-      arm*) ARCH=arm ;;
-      *) ARCH=$(uname -m)
-    esac
-  fi
-
-  # Select compilation flags.
-  if [ "$ARCH" = "i586" ]; then
-    SLKCFLAGS="-O2 -march=i586 -mtune=i686"
-    LIBDIRSUFFIX=""
-  elif [ "$ARCH" = "i686" ]; then
-    SLKCFLAGS="-O2 -march=i686 -mtune=i686"
-    LIBDIRSUFFIX=""
-  elif [ "$ARCH" = "x86_64" ]; then
-    SLKCFLAGS="-O2 -fPIC"
-    LIBDIRSUFFIX="64"
-  else
-    SLKCFLAGS="-O2"
-    LIBDIRSUFFIX=""
-  fi
-
-  # Set important variables: CWD (current working directory), TMP (temporary
-  # build directory), PKG (package installation directory).
-  CWD=$(pwd)
-  TMP=${TMP:-/tmp}
-  PKG=$TMP/package-$PKGNAM
-
-  # Always clean up the package installation directory.
-  rm -rf $PKG
-  mkdir -p $PKG
-
-  # Your slackbuild code. Don't forget to call `make` with `NUMJOBS`.
-
-  # Copy Slackware package related files:
-  install -o root -g root -m 0644 -v -D \
-    $CWD/slack-desc $PKG/install/slack-desc
-
-  # Create package from temporary directory:
-  cd $PKG
-  /sbin/makepkg -l y -c n $TMP/$PKGNAM-$VERSION-$ARCH-$BUILD.${PKGTYPE:-txz}
 
 Compressing Man Pages
 ---------------------
@@ -67,6 +27,7 @@ Compressing Man Pages
 Here is a one liner to compress all man pages in the package directory:
 
   find $PKG/usr/share/man -name \*\.? -type f -exec gzip -9 {} \+
+
 
 Strip All Binaries and Libraries
 --------------------------------
@@ -79,6 +40,7 @@ shared libraries then strip unneeded data:
     | grep 'ELF' \
     | cut -d ':' -f 1 \
     | xargs strip --strip-unneeded
+
 
 Installing Files in Hierarchy
 -----------------------------
@@ -104,44 +66,3 @@ Pratical example for visualization: copying man pages.
   > done
   man/man3/prog-man.3 -> /tmp/man/man3/prog-man.3
   man/man8/prog-man.8 -> /tmp/man/man8/prog-man.8
-
-
-Post Installation Snippets
-==========================
-
-Handle updated new files with or without permissions (slightly more
-readable version than the original ones from Slackware).
-
-  update() {
-    new_file="$1"
-    old_file=$(echo "$new_file" | sed 's/\.new$//')
-
-    if [ ! -f $old_file ]; then
-      # Old file doesn't exist, then just move it over.
-      mv $new_file $old_file
-    else
-      old_md5=$(md5sum $old_file | cut -d ' ' -f 1)
-      new_md5=$(md5sum $new_file | cut -d ' ' -f 1)
-      # Same file, just remove the new one.
-      if [ "$old_md5" == "$new_md5" ]; then
-        rm $new_file
-      fi
-    fi
-
-    # Keep new file so admin is asked what to do.
-  }
-
-  update_with_perms() {
-    new_file="$1"
-    old_file=$(echo "$new_file" | sed 's/\.new$//')
-
-    if [ -f $old_file ]; then
-      old_perms=$(stat -c '%a' "$old_file")
-      chmod $old_perms $new_file
-    fi
-
-    update $new_file
-  }
-
-  update_with_perms '/etc/rc.d/rc.<daemon>'
-  update '/etc/<daemon>/<config-file>'
