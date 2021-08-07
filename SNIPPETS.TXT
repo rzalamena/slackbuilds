@@ -26,7 +26,7 @@ Compressing Man Pages
 
 Here is a one liner to compress all man pages in the package directory:
 
-  find $PKG/usr/share/man -name \*\.? -type f -exec gzip -9 {} \+
+  find $PKG/usr/man -name \*\.? -type f -exec gzip -9 {} \+
 
 
 Strip All Binaries and Libraries
