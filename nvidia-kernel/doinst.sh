@@ -11,6 +11,6 @@ config() {
   # Otherwise, we leave the .new copy for the admin to consider...
 }
 
-config usr/share/X11/xorg.conf.d/99-nvidia-drm-outputclass.conf.new
+config lib/modprobe.d/nvidia.conf.new
 
 chroot . /sbin/depmod -a @KERN@ 2>/dev/null
