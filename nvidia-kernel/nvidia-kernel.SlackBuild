@@ -93,6 +93,7 @@ mkdir -p $PKG/lib/modprobe.d
 cat > $PKG/lib/modprobe.d/nvidia.conf.new <<EOF
 # To use proprietary driver we must disable the open source one.
 blacklist nouveau
+options nouveau modeset=0
 
 # Don't use NVIDIA preserved memory allocations for suspension.
 options nvidia \\
