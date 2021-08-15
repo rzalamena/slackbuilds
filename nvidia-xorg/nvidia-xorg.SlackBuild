@@ -142,8 +142,9 @@ install -o root -g root -m 0644 -v -D nvidia.icd \
   $PKG/etc/OpenCL/vendors/nvidia.icd
 install -o root -g root -m 0644 -v -D nvidia-drm-outputclass.conf \
   $PKG/usr/share/X11/xorg.conf.d/99-nvidia-drm-outputclass.conf.new
-install -o root -g root -m 0644 -v -D nvidia-settings.desktop \
-  $PKG/usr/share/applications/nvidia-settings.desktop
+sed 's|__UTILS_PATH__|/usr/bin|; s|__PIXMAP_PATH__|/usr/share/pixmaps|' \
+  nvidia-settings.desktop \
+  > $PKG/usr/share/applications/nvidia-settings.desktop
 install -o root -g root -m 0644 -v -D nvidia-settings.png \
   $PKG/usr/share/pixmaps/nvidia-settings.png
 
@@ -182,6 +183,12 @@ CFLAGS="$SLKCFLAGS" make $NUMJOBS HOST_CC=$ARCH-slackware-linux-cc \
 make $NUMJOBS DESTDIR=$PKG LIBDIR=$PKG/usr/lib$LIBDIRSUFFIX \
   MANDIR=$PKG/usr/man/man1 OUTPUTDIR=out PREFIX=/usr install || exit 1
 cd ..
+
+find $PKG -type f -exec file {} \+ \
+  | egrep '(executable|shared object)' \
+  | grep 'ELF' \
+  | cut -d ':' -f 1 \
+  | xargs strip --strip-unneeded
 
 mkdir -p $PKG/install
 cat $CWD/doinst.sh > $PKG/install/doinst.sh
