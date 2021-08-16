@@ -1,33 +1,26 @@
-update() {
-  new_file="$1"
-  old_file=$(echo "$new_file" | sed 's/\.new$//')
-
-  if [ ! -f $old_file ]; then
-    # Old file doesn't exist, then just move it over.
-    mv $new_file $old_file
-  else
-    old_md5=$(md5sum $old_file | cut -d ' ' -f 1)
-    new_md5=$(md5sum $new_file | cut -d ' ' -f 1)
-    # Same file, just remove the new one.
-    if [ "$old_md5" == "$new_md5" ]; then
-      rm $new_file
-    fi
+config() {
+  NEW="$1"
+  OLD="$(dirname $NEW)/$(basename $NEW .new)"
+  # If there's no config file by that name, mv it over:
+  if [ ! -r $OLD ]; then
+    mv $NEW $OLD
+  elif [ "$(cat $OLD | md5sum)" = "$(cat $NEW | md5sum)" ]; then
+    # toss the redundant copy
+    rm $NEW
   fi
-
-  # Keep new file so admin is asked what to do.
+  # Otherwise, we leave the .new copy for the admin to consider...
 }
 
-update_with_perms() {
-  new_file="$1"
-  old_file=$(echo "$new_file" | sed 's/\.new$//')
-
-  if [ -f $old_file ]; then
-    old_perms=$(stat -c '%a' "$old_file")
-    chmod $old_perms $new_file
+preserve_perms() {
+  NEW="$1"
+  OLD="$(dirname $NEW)/$(basename $NEW .new)"
+  if [ -e $OLD ]; then
+    cp -a $OLD ${NEW}.incoming
+    cat $NEW > ${NEW}.incoming
+    mv ${NEW}.incoming $NEW
   fi
-
-  update $new_file
+  config $NEW
 }
 
-update '/etc/thermald/thermal-cpu-cdev-order.xml.new'
-update '/etc/rc.d/rc.thermald.new'
+config etc/thermald/thermal-cpu-cdev-order.xml.new
+preserve_perms etc/rc.d/rc.thermald.new

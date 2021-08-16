@@ -1,68 +1,93 @@
-#!/bin/sh -e
+#!/bin/sh
 #
-# Copyright (C) 2020 Rafael F. Zalamena
-#
-# Permission to use, copy, modify, and/or distribute this software for any
-# purpose with or without fee is hereby granted.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
-# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
-# OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-# PERFORMANCE OF THIS SOFTWARE.
+# Copyright (C) 2021 Rafael F. Zalamena
+# All rights reserved.
+# 
+# Redistribution and use of this script, with or without modification, is
+# permitted provided that the following conditions are met:
+# 
+# 1. Redistributions of this script must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT,
+# INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+# STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+# IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+cd $(dirname $0) ; CWD=$(pwd)
 
 PKGNAM=thermald
-VERSION=${VERSION:-2.4.1}
+VERSION=${VERSION:-2.4.6}
 BUILD=${BUILD:-1}
-NUMJOBS=${NUMJOBS:-"-j$(expr $(nproc) + 1)"}
+PKGTYPE=${PKGTYPE:-txz}
 
 if [ -z "$ARCH" ]; then
   case "$(uname -m)" in
-    i?86) ARCH=i586 ;;
-    arm*) ARCH=arm ;;
-    *) ARCH=$(uname -m)
+    i?86) export ARCH=i586 ;;
+    arm*) export ARCH=arm ;;
+    *) export ARCH=$(uname -m) ;;
   esac
 fi
 
-if [ "$ARCH" = "i586" ]; then
+if [ "$ARCH" = "i486" ]; then
+  SLKCFLAGS="-O2 -march=i486 -mcpu=i686"
+  LIBDIRSUFFIX=""
+elif [ "$ARCH" = "i586" ]; then
   SLKCFLAGS="-O2 -march=i586 -mtune=i686"
   LIBDIRSUFFIX=""
 elif [ "$ARCH" = "i686" ]; then
-  SLKCFLAGS="-O2 -march=i686 -mtune=i686"
+  SLKCFLAGS="-O2 -march=i686"
+  LIBDIRSUFFIX=""
+elif [ "$ARCH" = "s390" ]; then
+  SLKCFLAGS="-O2"
   LIBDIRSUFFIX=""
 elif [ "$ARCH" = "x86_64" ]; then
   SLKCFLAGS="-O2 -fPIC"
   LIBDIRSUFFIX="64"
+elif [ "$ARCH" = "armv7hl" ]; then
+  SLKCFLAGS="-O3 -march=armv7-a -mfpu=vfpv3-d16"
+  LIBDIRSUFFIX=""
 else
   SLKCFLAGS="-O2"
   LIBDIRSUFFIX=""
 fi
 
-CWD=$(pwd)
-TMP=${TMP:-/tmp}
-PKG=$TMP/package-$PKGNAM
+NUMJOBS=${NUMJOBS:-" -j$(nproc) "}
 
+TMP=${TMP:-/tmp/slackbuild}
+PKG=${PKG:-$TMP/package-$PKGNAM}
 rm -rf $PKG
-mkdir -p $PKG
+mkdir -p $TMP $PKG
 
 cd $TMP
-tar -xvzf $CWD/thermal_daemon-$VERSION.tar.gz
+rm -rf thermal_daemon-$VERSION
+tar -xvzf $CWD/v$VERSION.tar.gz
 cd thermal_daemon-$VERSION
 ./autogen.sh
+CFLAGS="$SLKCFLAGS" \
+CXXFLAGS="$SLKCFLAGS" \
 ./configure \
   --prefix=/usr \
   --libdir=/usr/lib$LIBDIRSUFFIX \
   --sysconfdir=/etc \
   --localstatedir=/var \
-  --build=$ARCH-slackware-linux
+  --mandir=/usr/man \
+  --docdir=/usr/doc/$PKGNAM-$VERSION \
+  --build=$ARCH-slackware-linux \
+  || exit 1
 
 make $NUMJOBS
 make DESTDIR=$PKG install
 
 # Compress man pages.
-find $PKG/usr/share/man -name \*\.? -type f -exec gzip -9 {} \+
+find $PKG/usr/man -name \*\.? -type f -exec gzip -9 {} \+
 
 # Strip binaries.
 find $PKG -type f -exec file {} \+ \
@@ -79,23 +104,9 @@ mv -v $PKG/etc/thermald/thermal-cpu-cdev-order.xml \
 install -o root -g root -m 0644 -v -D \
   $CWD/rc.thermald $PKG/etc/rc.d/rc.thermald.new
 
-# Copy Slackware package related files:
-install -o root -g root -m 0644 -v -D \
-  $CWD/slack-desc $PKG/install/slack-desc
-install -o root -g root -m 0755 -v -D \
-  $CWD/doinst.sh $PKG/install/doinst.sh
+mkdir -p $PKG/install
+cat $CWD/doinst.sh > $PKG/install/doinst.sh
+cat $CWD/slack-desc > $PKG/install/slack-desc
 
-install -o root -g root -m 0644 -v -D \
-  $CWD/slack-desc \
-  $PKG/usr/doc/$PKGNAM-$VERSION/slack-desc
-install -o root -g root -m 0755 -v -D \
-  $CWD/thermald.SlackBuild \
-  $PKG/usr/doc/$PKGNAM-$VERSION/thermald.SlackBuild
-install -o root -g root -m 0644 -v -D \
-  COPYING $PKG/usr/doc/$PKGNAM-$VERSION/COPYING.thermald
-install -o root -g root -m 0644 -v -D \
-  README.txt $PKG/usr/doc/$PKGNAM-$VERSION/README.txt.thermald
-
-# Create package from temporary directory:
 cd $PKG
-/sbin/makepkg -l y -c n $TMP/$PKGNAM-$VERSION-$ARCH-$BUILD.${PKGTYPE:-txz}
+/sbin/makepkg -l y -c n $TMP/$PKGNAM-$VERSION-$ARCH-$BUILD.$PKGTYPE
