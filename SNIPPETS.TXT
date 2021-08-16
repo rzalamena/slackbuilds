@@ -12,7 +12,7 @@ Configuration options may vary, please check `./configure --help`.
 	CXXFLAGS="$SLKCFLAGS" \
 	./configure \
     --prefix=/usr \
-    --libdir=/usr/lib${LIBDIRSUFFIX} \
+    --libdir=/usr/lib$LIBDIRSUFFIX \
     --sysconfdir=/etc \
     --localstatedir=/var \
     --mandir=/usr/man \
