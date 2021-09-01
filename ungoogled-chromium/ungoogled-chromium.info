@@ -1,8 +1,13 @@
 PRGNAM="ungoogled-chromium"
-VERSION="87.0.4280.88-1"
+VERSION="92.0.4515.159-1"
 HOMEPAGE="https://ungoogled-software.github.io/"
-DOWNLOAD="https://github.com/Eloston/ungoogled-chromium/archive/87.0.4280.88-1.tar.gz https://commondatastorage.googleapis.com/chromium-browser-official/chromium-87.0.4280.88.tar.xz"
-MD5SUM="8cc0bbf0f5ed487ed5b65bfcc833f6d8 017cef5555c7a957091ce12bdd98c821"
-REQUIRES="%README%"
+DOWNLOAD=" \
+  https://github.com/Eloston/ungoogled-chromium/archive/92.0.4515.159-1.tar.gz \
+  https://commondatastorage.googleapis.com/chromium-browser-official/chromium-92.0.4515.159.tar.xz \
+  "
+MD5SUM="03568dd4486665448cf1b849192b32a0 e9e4926870377c87d0bfd0317f742cf2"
+DOWNLOAD_x86_64=""
+MD5SUM_x86_64=""
+REQUIRES=""
 MAINTAINER="Rafael F. Zalamena"
 EMAIL="rzalamena@gmail.com"

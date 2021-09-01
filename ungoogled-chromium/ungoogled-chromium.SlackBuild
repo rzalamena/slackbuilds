@@ -1,8 +1,6 @@
-#!/bin/sh -e
-
-# Slackware build script for ungoogled-chromium
-
-# Copyright (C) 2020 Rafael F. Zalamena
+#!/bin/sh
+#
+# Copyright (C) 2021 Rafael F. Zalamena
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +22,9 @@
 
 # Change log
 #
+# 2021-08-31:
+#   Rewrite to use new template and bump to ungoogled chromium version
+#   92.0.4515.159-1.
 # 2020-12-10:
 #   Rewrite to simplify shell script, strip binaries, include chrome driver,
 #   include sandbox version, move heredocs to files, use all bundled libraries
@@ -32,34 +33,49 @@
 # 2020-02-10:
 #   First version of ungoogled chromium slackbuild for version 80.0.3987.87-2.
 
-# URLs:
-# - https://github.com/Eloston/ungoogled-chromium/archive/87.0.4280.88-1.tar.gz
-# - https://commondatastorage.googleapis.com/chromium-browser-official/chromium-87.0.4280.88.tar.xz
+cd $(dirname $0) ; CWD=$(pwd)
 
 PKGNAM=ungoogled-chromium
-VERSION=${VERSION:-87.0.4280.88}
+VERSION=${VERSION:-92.0.4515.159}
 VERSION_REV=${VERSION_REV:-1} # ungoogled chromium revision
 BUILD=${BUILD:-1}
+PKGTYPE=${PKGTYPE:-txz}
 
-NUMJOBS=${NUMJOBS:-"-j2"}
+PATCHES=""
+PATCHES+=" 01-ruy-block_map.patch"
+PATCHES+=" 02-sql-virtualcursor.patch"
+PATCHES+=" 03-crashpad-consent.patch"
+PATCHES+=" 04-freetype-2.11.patch"
+PATCHES+=" 05-shim_headers.patch"
+PATCHES+=" 06-glibc-2.33.patch"
+PATCHES+=" 07-vdpau-support.patch"
 
 if [ -z "$ARCH" ]; then
   case "$(uname -m)" in
-    i?86) ARCH=i586 ;;
-    arm*) ARCH=arm ;;
-    *) ARCH=$(uname -m)
+    i?86) export ARCH=i586 ;;
+    arm*) export ARCH=arm ;;
+    *) export ARCH=$(uname -m) ;;
   esac
 fi
 
-if [ "$ARCH" = "i586" ]; then
+if [ "$ARCH" = "i486" ]; then
+  SLKCFLAGS="-O2 -march=i486 -mcpu=i686"
+  LIBDIRSUFFIX=""
+elif [ "$ARCH" = "i586" ]; then
   SLKCFLAGS="-O2 -march=i586 -mtune=i686"
   LIBDIRSUFFIX=""
 elif [ "$ARCH" = "i686" ]; then
-  SLKCFLAGS="-O2 -march=i686 -mtune=i686"
+  SLKCFLAGS="-O2 -march=i686"
+  LIBDIRSUFFIX=""
+elif [ "$ARCH" = "s390" ]; then
+  SLKCFLAGS="-O2"
   LIBDIRSUFFIX=""
 elif [ "$ARCH" = "x86_64" ]; then
   SLKCFLAGS="-O2 -fPIC"
   LIBDIRSUFFIX="64"
+elif [ "$ARCH" = "armv7hl" ]; then
+  SLKCFLAGS="-O3 -march=armv7-a -mfpu=vfpv3-d16"
+  LIBDIRSUFFIX=""
 else
   SLKCFLAGS="-O2"
   LIBDIRSUFFIX=""
@@ -68,97 +84,97 @@ fi
 # Silence clang about unknown warnings.
 SLKCFLAGS+=" -Wno-unknown-warning-option"
 
-export CC=${ARCH}-slackware-linux-clang CXX=${ARCH}-slackware-linux-clang++ \
-  CFLAGS="${SLKCFLAGS}" CXXFLAGS="${SLKCFLAGS}" AR=llvm-ar NM=llvm-nm
+NUMJOBS=${NUMJOBS:-" -j$(nproc) "}
 
-PATCHES='001-87-ozone.patch 002-87-vaapi.patch 003-87-vdpau.patch'
-PATCHES="$PATCHES 004-87-openscreen.patch 005-87-cursorfactory.patch"
-PATCHES="$PATCHES 006-87-serviceworkercontainerhist-crash.patch"
+export CC=$ARCH-slackware-linux-clang CXX=$ARCH-slackware-linux-clang++ \
+  CFLAGS="$SLKCFLAGS" CXXFLAGS="$SLKCFLAGS" AR=llvm-ar NM=llvm-nm
 
-CWD=$(pwd)
-TMP=${TMP:-/tmp}
-PKG=$TMP/package-$PKGNAM
-
+TMP=${TMP:-/tmp/slackbuild}
+PKG=${PKG:-$TMP/package-$PKGNAM}
 rm -rf $PKG
-mkdir -p $PKG
+mkdir -p $TMP $PKG
 
-# Extract source code and patches.
 cd $TMP
-tar -xzf $CWD/$VERSION-$VERSION_REV.tar.gz
-tar --xz -xf $CWD/chromium-$VERSION.tar.xz
+if [ ! -f chromium-$VERSION/.patched ]; then
+  rm -rf ungoogled-chromium-$VERSION-$VERSION_REV chromium-$VERSION
+  tar -xzf $CWD/$VERSION-$VERSION_REV.tar.gz
+  tar --xz -xf $CWD/chromium-$VERSION.tar.xz
+fi
 
 SRCDIR=$TMP/ungoogled-chromium-$VERSION-$VERSION_REV
 BUILDDIR=$TMP/chromium-$VERSION
 cd $BUILDDIR
 
 # Remove google traces and apply patches.
-$SRCDIR/utils/prune_binaries.py ./ $SRCDIR/pruning.list
-$SRCDIR/utils/patches.py apply ./ $SRCDIR/patches
-$SRCDIR/utils/domain_substitution.py \
-  apply \
-  -r $SRCDIR/domain_regex.list \
-  -f $SRCDIR/domain_substitution.list \
-  -c domainsubcache.tar.gz ./
+if [ ! -f .patched ]; then
+  $SRCDIR/utils/prune_binaries.py ./ $SRCDIR/pruning.list || exit 1
+  $SRCDIR/utils/patches.py apply ./ $SRCDIR/patches || exit 1
+  $SRCDIR/utils/domain_substitution.py \
+    apply \
+    -r $SRCDIR/domain_regex.list \
+    -f $SRCDIR/domain_substitution.list \
+    -c domainsubcache.tar.gz ./ || exit 1
 
-# Apply local patches:
-for patch in $PATCHES; do
-  patch -p1 -i $CWD/$patch
-done
+  # Prepare build directory to use node.
+  mkdir -p third_party/node/linux/node-linux-x64/bin
+  ln -s $(which node) third_party/node/linux/node-linux-x64/bin || exit 1
 
-# Prepare build directory to use node.
-mkdir -p third_party/node/linux/node-linux-x64/bin
-ln -s $(which node) third_party/node/linux/node-linux-x64/bin
+  # Allow building against system libraries in official builds
+  sed -i 's/OFFICIAL_BUILD/GOOGLE_CHROME_BUILD/' \
+    tools/generate_shim_headers/generate_shim_headers.py || exit 1
 
-# Allow building against system libraries in official builds
-sed -i 's/OFFICIAL_BUILD/GOOGLE_CHROME_BUILD/' \
-  tools/generate_shim_headers/generate_shim_headers.py
+  # Compile `gn` so we can generate the build files.
+  mkdir -p out/Default
+  tools/gn/bootstrap/bootstrap.py \
+    --skip-generate-buildfiles $NUMJOBS -o out/Default || exit 1
 
-# Compile `gn` so we can generate the build files.
-mkdir -p out/Default
-tools/gn/bootstrap/bootstrap.py \
-  --skip-generate-buildfiles $NUMJOBS -o out/Default
+  # Copy configuration and generate build files.
+  cp -v $CWD/args.gn out/Default/args.gn || exit 1
+  ./out/Default/gn gen out/Default --fail-on-unused-args || exit 1
 
-# Copy configuration and generate build files.
-cp -v $CWD/args.gn out/Default/args.gn
-./out/Default/gn gen out/Default --fail-on-unused-args
+  for patch in $PATCHES; do
+    patch -p1 -i $CWD/$patch || exit 1
+  done
+
+  # Keep in mind that the source is patched.
+  touch .patched
+fi
 
 # Compile chromium:
-ninja -C out/Default $NUMJOBS chrome chrome_sandbox chromedriver
+ninja -C out/Default $NUMJOBS chrome chrome_sandbox chromedriver || exit 1
 
 # Install binaries:
 install -o root -g root -m 0755 -v -D \
   $BUILDDIR/out/Default/chrome \
-  $PKG/usr/lib${LIBDIRSUFFIX}/chromium-browser/chrome
+  $PKG/usr/lib$LIBDIRSUFFIX/chromium-browser/chrome || exit 1
 install -o root -g root -m 4755 -v -D \
   $BUILDDIR/out/Default/chrome_sandbox \
-  $PKG/usr/lib${LIBDIRSUFFIX}/chromium-browser/chrome_sandbox
+  $PKG/usr/lib$LIBDIRSUFFIX/chromium-browser/chrome_sandbox || exit 1
 install -o root -g root -m 0755 -v -D \
   $BUILDDIR/out/Default/chromedriver \
-  $PKG/usr/lib${LIBDIRSUFFIX}/chromium-browser/chromedriver
+  $PKG/usr/lib$LIBDIRSUFFIX/chromium-browser/chromedriver || exit 1
 install -o root -g root -m 0644 -v -D \
-  -t $PKG/usr/lib${LIBDIRSUFFIX}/chromium-browser \
+  -t $PKG/usr/lib$LIBDIRSUFFIX/chromium-browser \
   $BUILDDIR/out/Default/*.bin \
   $BUILDDIR/out/Default/*.pak \
-  $BUILDDIR/out/Default/*.so
+  $BUILDDIR/out/Default/*.so || exit 1
 
 install -o root -g root -m 0644 -v -D \
   $BUILDDIR/out/Default/icudtl.dat \
-  $PKG/usr/lib${LIBDIRSUFFIX}/chromium-browser
+  $PKG/usr/lib$LIBDIRSUFFIX/chromium-browser || exit 1
 
-# Strip binaries:
 find $PKG -type f -exec file {} \+ \
   | egrep '(executable|shared object)' \
   | grep 'ELF' \
   | cut -d ':' -f 1 \
   | xargs strip --strip-unneeded
 
-# Install man page:
-mkdir -p $PKG/usr/share/man/man1
+mkdir -p $PKG/usr/man/man1
 sed -e 's/@@PACKAGE@@/chromium-browser/g;s/@@MENUNAME@@/Chromium/g;' \
   $BUILDDIR/chrome/app/resources/manpage.1.in \
-  | gzip -9 > $PKG/usr/share/man/man1/chromium-browser.1.gz
-ln -sv /usr/share/man/man1/chromium-browser.1.gz \
-  $PKG/usr/share/man/man1/chromium.1.gz
+  | gzip -9 > $PKG/usr/man/man1/chromium-browser.1.gz
+ln -sv /usr/man/man1/chromium-browser.1.gz \
+  $PKG/usr/man/man1/chromium.1.gz
 
 # Install application file.
 mkdir -p $PKG/usr/share/applications
@@ -166,86 +182,56 @@ expr='s/@@MENUNAME@@/Chromium/g;'
 expr+='s/@@USR_BIN_SYMLINK_NAME@@/chromium-browser/g;'
 expr+='s/@@PACKAGE@@/chromium-browser/g;'
 expr+='s|\(^Exec=\)/usr/bin/|\1|g;'
-sed -e "${expr}" \
+sed -e "$expr" \
   $BUILDDIR/chrome/installer/linux/common/desktop.template \
-  > $PKG/usr/share/applications/chromium-browser.desktop
+  > $PKG/usr/share/applications/chromium-browser.desktop || exit 1
 
 # Install locales:
-mkdir -p $PKG/usr/lib${LIBDIRSUFFIX}/chromium-browser/locales
+mkdir -p $PKG/usr/lib$LIBDIRSUFFIX/chromium-browser/locales
 install -o root -g root -m 0644 -v -D \
-  -t $PKG/usr/lib${LIBDIRSUFFIX}/chromium-browser/locales \
-  $BUILDDIR/out/Default/locales/*
+  -t $PKG/usr/lib$LIBDIRSUFFIX/chromium-browser/locales \
+  $BUILDDIR/out/Default/locales/* || exit 1
 
 # Install resources:
 for file in $(cd $BUILDDIR/out/Default/resources; find . -type f); do
   install -o root -g root -m 0644 -v -D \
     $BUILDDIR/out/Default/resources/$file \
-    $PKG/usr/lib${LIBDIRSUFFIX}/chromium-browser/resources/$file
+    $PKG/usr/lib$LIBDIRSUFFIX/chromium-browser/resources/$file || exit 1
 done
 
 # Install launcher script:
 install -o root -g root -m 0755 -v -D \
   $CWD/chromium-launcher.sh \
-  $PKG/usr/lib${LIBDIRSUFFIX}/chromium-browser/chromium-launcher.sh
+  $PKG/usr/lib$LIBDIRSUFFIX/chromium-browser/chromium-launcher.sh || exit 1
 
 mkdir -p $PKG/usr/bin
-ln -sv /usr/lib${LIBDIRSUFFIX}/chromium-browser/chromium-launcher.sh \
+ln -sv /usr/lib$LIBDIRSUFFIX/chromium-browser/chromium-launcher.sh \
   $PKG/usr/bin/chromium
-ln -sv /usr/lib${LIBDIRSUFFIX}/chromium-browser/chromium-launcher.sh \
+ln -sv /usr/lib$LIBDIRSUFFIX/chromium-browser/chromium-launcher.sh \
   $PKG/usr/bin/chromium-browser
 
 # Install configuration file:
 install -o root -g root -m 0644 -v -D \
-  $CWD/chromium-default $PKG/etc/chromium/default
+  $CWD/chromium-default $PKG/etc/chromium/default.new || exit 1
 
 # Install icons:
 for size in 16 32; do
   install -o root -g root -m 0644 -v -D \
     $BUILDDIR/chrome/app/theme/default_100_percent/chromium/product_logo_$size.png \
-    $PKG/usr/share/icons/hicolor/${size}x${size}/apps/chromium-browser.png
+    $PKG/usr/share/icons/hicolor/${size}x${size}/apps/chromium-browser.png \
+    || exit 1
 done
 
 for size in 24 48 64 128 256; do
   install -o root -g root -m 0644 -v -D \
     $BUILDDIR/chrome/app/theme/chromium/product_logo_$size.png \
-    $PKG/usr/share/icons/hicolor/${size}x${size}/apps/chromium-browser.png
+    $PKG/usr/share/icons/hicolor/${size}x${size}/apps/chromium-browser.png \
+    || exit 1
 done
 
-# Install slackware related files:
-install -o root -g root -m 0644 -v -D $CWD/slack-desc $PKG/install/slack-desc
-
-install -o root -g root -m 0644 -v -D \
-  -t $PKG/usr/doc/$PKGNAM-${VERSION}_${VERSION_REV} \
-  $CWD/slack-desc \
-  $CWD/chromium-launcher.sh \
-  $CWD/args.gn \
-  $CWD/chromium-default
-
-for patch in $PATCHES; do
-  install -o root -g root -m 0644 -v -D \
-    -t $PKG/usr/doc/$PKGNAM-${VERSION}_${VERSION_REV} \
-    $CWD/$patch
-done
-
-install -o root -g root -m 0755 -v -D \
-  -t $PKG/usr/doc/$PKGNAM-${VERSION}_${VERSION_REV} \
-  $CWD/ungoogled-chromium.SlackBuild
-
-install -o root -g root -m 0644 -v -D \
-  $SRCDIR/LICENSE \
-  $PKG/usr/doc/$PKGNAM-${VERSION}_${VERSION_REV}/LICENSE.ungoogled-chromium
-install -o root -g root -m 0644 -v -D \
-  $SRCDIR/README.md \
-  $PKG/usr/doc/$PKGNAM-${VERSION}_${VERSION_REV}/README.ungoogled-chromium.md
-install -o root -g root -m 0644 -v -D \
-  $BUILDDIR/AUTHORS \
-  $PKG/usr/doc/$PKGNAM-${VERSION}_${VERSION_REV}/AUTHORS.chromium
-install -o root -g root -m 0644 -v -D \
-  $BUILDDIR/LICENSE \
-  $PKG/usr/doc/$PKGNAM-${VERSION}_${VERSION_REV}/LICENSE.chromium
-install -o root -g root -m 0644 -v -D \
-  $BUILDDIR/README.md \
-  $PKG/usr/doc/$PKGNAM-${VERSION}_${VERSION_REV}/README.chromium.md
+mkdir -p $PKG/install
+cat $CWD/doinst.sh > $PKG/install/doinst.sh
+cat $CWD/slack-desc > $PKG/install/slack-desc
 
 cd $PKG
-/sbin/makepkg -l y -c n $TMP/$PKGNAM-${VERSION}_${VERSION_REV}-$ARCH-$BUILD.txz
+/sbin/makepkg -l y -c n $TMP/$PKGNAM-$VERSION-$ARCH-$BUILD.$PKGTYPE

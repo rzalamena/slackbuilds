@@ -1,0 +1,13 @@
+Ungoogled chromium is a collection of patches that remove Google
+integration, tune privacy settings and remove blobs from source
+code.
+
+To enable hardware acceleration for video decode add the following flag
+to your `/etc/chromium/default` file:
+
+  CHROMIUM_FLAGS=" --enable-features=VaapiVideoDecoder "
+
+Then check if it was enabled by visiting: chrome://gpu/ .
+
+For more help with ungoogled-chromium please visit:
+https://ungoogled-software.github.io/
