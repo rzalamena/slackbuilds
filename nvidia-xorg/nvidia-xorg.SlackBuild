@@ -2,13 +2,13 @@
 #
 # Copyright (C) 2021 Rafael F. Zalamena
 # All rights reserved.
-# 
+#
 # Redistribution and use of this script, with or without modification, is
 # permitted provided that the following conditions are met:
-# 
+#
 # 1. Redistributions of this script must retain the above copyright
 #    notice, this list of conditions and the following disclaimer.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
 # IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -70,45 +70,69 @@ cd $TMP
 rm -rf nvidia-modprobe-$VERSION nvidia-settings-$VERSION \
   NVIDIA-Linux-x86_64-$VERSION
 
+tar -xvjf $CWD/nvidia-modprobe-$VERSION.tar.bz2
+tar -xvjf $CWD/nvidia-settings-$VERSION.tar.bz2
 sh $CWD/NVIDIA-Linux-x86_64-$VERSION.run --extract-only
-cd NVIDIA-Linux-x86_64-$VERSION
 
 # Install all precompiled binaries first.
 #
 # See nvidia documentation Chapter 5 'Listing of Installed Components'.
+cd NVIDIA-Linux-x86_64-$VERSION
 XORGDIR=$PKG/usr/lib$LIBDIRSUFFIX/xorg
-install -o root -g root -m 0644 -v -D nvidia_drv.so \
-  $XORGDIR/modules/drivers/nvidia_drv.so
-install -o root -g root -m 0644 -v -D libglxserver_nvidia.so.$VERSION \
-  $XORGDIR/extensions/libglxserver_nvidia.so.$VERSION
+install -o root -g root -m 0755 -v -D nvidia_drv.so \
+  $XORGDIR/modules/drivers/nvidia_drv.so || exit 1
+install -o root -g root -m 0755 -v -D libglxserver_nvidia.so.$VERSION \
+  $XORGDIR/modules/extensions/libglxserver_nvidia.so.$VERSION || exit 1
+mkdir -p $XORGDIR/modules/extensions
+ln -sv libglxserver_nvidia.so.$VERSION \
+  $XORGDIR/modules/extensions/libglxserver_nvidia.so
 
 mkdir -p $PKG/usr/lib$LIBDIRSUFFIX
-install -o root -g root -m 0644 -v libGL.so* libEGL.so* libGLESv* \
-  libnvidia-egl-wayland.so* libOpenGL.so* libGLX.so* libGLdispatch.so* \
-  libGLX_nvidia.so.$VERSION libEGL_nvidia.so.$VERSION \
-  libnvidia-cfg.so.$VERSION libnvidia-compiler.so.$VERSION \
-  libnvidia-eglcore.so.$VERSION libnvidia-glcore.so.$VERSION \
-  libnvidia-glsi.so.$VERSION libnvidia-glvkspirv.so.$VERSION \
-  libnvidia-rtcore.so.$VERSION libnvidia-cbl.so.$VERSION \
-  libnvidia-allocator.so.$VERSION libvdpau_nvidia.so.$VERSION \
-  libcuda.so.$VERSION libnvidia-ptxjitcompiler.so.$VERSION \
-  libnvidia-nvvm.so* libnvidia-opencl.so.$VERSION \
-  libOpenGL.so.* libnvidia-tls.so.$VERSION libnvidia-ml.so.$VERSION \
-  libnvcuvid.so.$VERSION libnvidia-encode.so.$VERSION \
-  libnvidia-ifr.so.$VERSION libnvidia-fbc.so.$VERSION \
-  libnvoptix.so.$VERSION libnvidia-opticalflow.so.$VERSION \
-  libnvidia-ngx.so.$VERSION \
+# Items that were installed elsewhere:
+# - libglvnd: libEGL.so.1.1.0, libGL.so.1.7.0, libGLESv1_CM.so.1.2.0,
+#   libGLESv2.so.2.1.0, libGLX.so.0.0.0, libGLdispatch.so.0.0.0,
+#   libOpenGL.so.0.0.0.
+# - ocl-icd: libOpenCL.so.1.0.0.
+# - egl-wayland: libnvidia-egl-wayland.so.1.1.7.
+install -o root -g root -m 0755 -v \
+  libEGL.so.$VERSION libEGL_nvidia.so.$VERSION \
+  libGLESv1_CM_nvidia.so.$VERSION libGLESv2_nvidia.so.$VERSION \
+  libGLX_nvidia.so.$VERSION libcuda.so.$VERSION \
+  libnvcuvid.so.$VERSION libnvidia-allocator.so.$VERSION \
+  libnvidia-cbl.so.$VERSION libnvidia-cfg.so.$VERSION \
+  libnvidia-compiler.so.$VERSION libnvidia-eglcore.so.$VERSION \
+  libnvidia-encode.so.$VERSION libnvidia-fbc.so.$VERSION \
+  libnvidia-glcore.so.$VERSION libnvidia-glsi.so.$VERSION \
+  libnvidia-glvkspirv.so.$VERSION libnvidia-gtk2.so.$VERSION \
+  libnvidia-gtk3.so.$VERSION libnvidia-ifr.so.$VERSION \
+  libnvidia-ml.so.$VERSION libnvidia-ngx.so.$VERSION \
+  libnvidia-opencl.so.$VERSION libnvidia-opticalflow.so.$VERSION \
+  libnvidia-ptxjitcompiler.so.$VERSION libnvidia-rtcore.so.$VERSION \
+  libnvidia-tls.so.$VERSION libnvoptix.so.$VERSION \
+  libvdpau_nvidia.so.$VERSION \
+  $PKG/usr/lib$LIBDIRSUFFIX/ || exit 1
+
+NVVM_FILE=$(ls libnvidia-nvvm.so.*)
+install -o root -g root -m 0755 -v $NVVM_FILE \
   $PKG/usr/lib$LIBDIRSUFFIX/
-# libOpenCL.so.1.0.0 omitted on purpose: it exists on package ocl-icd.
+ln -sv $NVVM_FILE $PKG/usr/lib$LIBDIRSUFFIX/libnvidia-nvvm.so.4
+ln -sv libnvidia-nvvm.so.4 $PKG/usr/lib$LIBDIRSUFFIX/libnvidia-nvvm.so
+
+ln -sv libcuda.so.$VERSION \
+  $PKG/usr/lib$LIBDIRSUFFIX/libcuda.so
+
+ln -sv libvdpau_nvidia.so.$VERSION \
+  $PKG/usr/lib$LIBDIRSUFFIX/libvdpau_nvidia.so.1
+ln -sv libvdpau_nvidia.so.1 \
+  $PKG/usr/lib$LIBDIRSUFFIX/libvdpau_nvidia.so
 
 if [ "$ARCH" = "x86_64" ]; then
   cd 32
   mkdir -p $PKG/usr/lib
-  install -o root -g root -m 0644 -v \
-    libcuda.so.$VERSION libEGL_nvidia.so.$VERSION libEGL.so* \
-    libGLdispatch.so* libGLESv1_CM_nvidia.so.$VERSION libGLESv1_CM.so* \
-    libGLESv2_nvidia.so.$VERSION libGLESv2.so* libGL.so* \
-    libGLX_nvidia.so.$VERSION libGLX.so* libnvcuvid.so.$VERSION \
+  install -o root -g root -m 0755 -v \
+    libEGL_nvidia.so.$VERSION libGLESv1_CM_nvidia.so.$VERSION \
+    libGLESv2_nvidia.so.$VERSION libGLX_nvidia.so.$VERSION \
+    libcuda.so.$VERSION libnvcuvid.so.$VERSION \
     libnvidia-allocator.so.$VERSION libnvidia-compiler.so.$VERSION \
     libnvidia-eglcore.so.$VERSION libnvidia-encode.so.$VERSION \
     libnvidia-fbc.so.$VERSION libnvidia-glcore.so.$VERSION \
@@ -116,8 +140,17 @@ if [ "$ARCH" = "x86_64" ]; then
     libnvidia-ifr.so.$VERSION libnvidia-ml.so.$VERSION \
     libnvidia-opencl.so.$VERSION libnvidia-opticalflow.so.$VERSION \
     libnvidia-ptxjitcompiler.so.$VERSION libnvidia-tls.so.$VERSION \
-    libOpenCL.so* libOpenGL.so* libvdpau_nvidia.so.$VERSION \
-    $PKG/usr/lib
+    libvdpau_nvidia.so.$VERSION \
+    $PKG/usr/lib || exit 1
+
+  ln -sv libcuda.so.$VERSION \
+    $PKG/usr/lib/libcuda.so
+
+  ln -sv libvdpau_nvidia.so.$VERSION \
+    $PKG/usr/lib/libvdpau_nvidia.so.1
+  ln -sv libvdpau_nvidia.so.1 \
+    $PKG/usr/lib/libvdpau_nvidia.so
+
   cd ..
 fi
 
@@ -125,28 +158,29 @@ mkdir -p $PKG/opt/bin
 install -o root -g root -m 0755 -v -D \
   nvidia-cuda-mps-control nvidia-cuda-mps-server nvidia-debugdump \
   nvidia-ngx-updater nvidia-smi \
-  $PKG/opt/bin/
+  $PKG/opt/bin/ || exit 1
 
 mkdir -p $PKG/usr/man/man1
 install -o root -g root -m 0644 -v -D \
   nvidia-cuda-mps-control.1.gz nvidia-smi.1.gz \
-  $PKG/usr/man/man1/
+  $PKG/usr/man/man1/ || exit 1
 
 install -o root -g root -m 0644 -v -D 10_nvidia_wayland.json \
-  $PKG/usr/share/egl/egl_external_platform.d/10_nvidia_wayland.json
+  $PKG/usr/share/egl/egl_external_platform.d/10_nvidia_wayland.json || exit 1
 install -o root -g root -m 0644 -v -D nvidia_icd.json \
-  $PKG/etc/vulkan/icd.d/nvidia_icd.json
+  $PKG/etc/vulkan/icd.d/nvidia_icd.json || exit 1
 install -o root -g root -m 0644 -v -D nvidia_layers.json \
-  $PKG/etc/vulkan/implicit_layer.d/nvidia_layers.json
+  $PKG/etc/vulkan/implicit_layer.d/nvidia_layers.json || exit 1
 install -o root -g root -m 0644 -v -D nvidia.icd \
-  $PKG/etc/OpenCL/vendors/nvidia.icd
+  $PKG/etc/OpenCL/vendors/nvidia.icd || exit 1
 install -o root -g root -m 0644 -v -D nvidia-drm-outputclass.conf \
-  $PKG/usr/share/X11/xorg.conf.d/99-nvidia-drm-outputclass.conf.new
+  $PKG/usr/share/X11/xorg.conf.d/99-nvidia-drm-outputclass.conf.new || exit 1
+mkdir -p $PKG/usr/share/applications
 sed 's|__UTILS_PATH__|/usr/bin|; s|__PIXMAP_PATH__|/usr/share/pixmaps|' \
   nvidia-settings.desktop \
-  > $PKG/usr/share/applications/nvidia-settings.desktop
+  > $PKG/usr/share/applications/nvidia-settings.desktop || exit 1
 install -o root -g root -m 0644 -v -D nvidia-settings.png \
-  $PKG/usr/share/pixmaps/nvidia-settings.png
+  $PKG/usr/share/pixmaps/nvidia-settings.png || exit 1
 
 mkdir -p $PKG/usr/share/nvidia
 install -o root -g root -m 0644 -v -D \
@@ -158,31 +192,19 @@ mkdir -p $PKG/usr/lib$LIBDIRSUFFIX/nvidia/wine
 install -o root -g root -m 0644 -v -D \
   _nvngx.dll nvngx.dll $PKG/usr/lib$LIBDIRSUFFIX/nvidia/wine/
 
-ln -s libglxserver_nvidia.so.$VERSION \
-  $PKG/usr/lib$LIBDIRSUFFIX/xorg/modules/extensions/libglxserver_nvidia.so
-ln -s libGL.so.1.0.0 \
-  $PKG/usr/lib$LIBDIRSUFFIX/libGL.so.1
-ln -s libGL.so.1.0.0 \
-  $PKG/usr/lib$LIBDIRSUFFIX/libGL.so
-ln -s libcuda.so.$VERSION \
-  $PKG/usr/lib$LIBDIRSUFFIX/libcuda.so
-
-tar -xvjf $CWD/nvidia-modprobe-$VERSION.tar.bz2
-cd nvidia-modprobe-$VERSION
+# Now compile modprobe and settings from source instead of using binaries.
+cd $TMP/nvidia-modprobe-$VERSION
 env CFLAGS="$SLKCFLAGS" make $NUMJOBS HOST_CC=$ARCH-slackware-linux-cc \
   OUTPUTDIR=out PREFIX=/usr || exit 1
 make $NUMJOBS DESTDIR=$PKG LIBDIR=$PKG/usr/lib$LIBDIRSUFFIX \
   MANDIR=$PKG/usr/man/man1 OUTPUTDIR=out PREFIX=/usr install || exit 1
 chmod -v 4710 $PKG/usr/bin/nvidia-modprobe || exit 1
-cd ..
 
-tar -xvjf $CWD/nvidia-settings-$VERSION.tar.bz2
-cd nvidia-settings-$VERSION
+cd $TMP/nvidia-settings-$VERSION
 CFLAGS="$SLKCFLAGS" make $NUMJOBS HOST_CC=$ARCH-slackware-linux-cc \
   OUTPUTDIR=out PREFIX=/usr || exit 1
 make $NUMJOBS DESTDIR=$PKG LIBDIR=$PKG/usr/lib$LIBDIRSUFFIX \
   MANDIR=$PKG/usr/man/man1 OUTPUTDIR=out PREFIX=/usr install || exit 1
-cd ..
 
 find $PKG -type f -exec file {} \+ \
   | egrep '(executable|shared object)' \
