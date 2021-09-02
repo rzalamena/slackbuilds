@@ -21,6 +21,24 @@ Configuration options may vary, please check `./configure --help`.
     || exit 1
 
 
+CMake Configuration
+-------------------
+
+Configuration command for CMake projects:
+
+  cmake -B build \
+    -DCMAKE_C_FLAGS="$SLKCFLAGS" \
+    -DCMAKE_CXX_FLAGS="$SLKCFLAGS" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/usr \
+    -DCMAKE_INSTALL_LIBDIR=lib64 \
+    -DCMAKE_INSTALL_MANDIR=/usr/man \
+    -DCMAKE_INSTALL_DOCDIR=/usr/doc/$PKGNAM-$VERSION \
+    || exit 1
+
+(don't forget to `cd` to directory `build` before calling `make`)
+
+
 Compressing Man Pages
 ---------------------
 
