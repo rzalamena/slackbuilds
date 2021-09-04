@@ -1,0 +1,13 @@
+Unbound is a validating, recursive, caching DNS resolver. It is
+designed to be fast and lean and incorporates modern features based on
+open standards.
+
+User / Group
+------------
+
+To run unbound without root privileges you must add the following user
+and group:
+
+  # /usr/sbin/groupadd -g 304 unbound
+  # /usr/sbin/useradd -d /var/lib/unbound -s /sbin/nologin -u 304 \
+      -g unbound unbound

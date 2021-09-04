@@ -1,0 +1,129 @@
+#!/bin/sh
+#
+# Copyright (C) 2021 Rafael F. Zalamena
+# All rights reserved.
+#
+# Redistribution and use of this script, with or without modification, is
+# permitted provided that the following conditions are met:
+#
+# 1. Redistributions of this script must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT,
+# INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+# STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+# IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+UNBOUND_CHROOT=${UNBOUND_CHROOT:-/var/unbound}
+UNBOUND_PIDFILE=${UNBOUND_PIDFILE:-/run/unbound.pid}
+
+unbound_start() {
+  # Create missing directories.
+  if [ ! -d $UNBOUND_CHROOT/etc ]; then
+    mkdir -p $UNBOUND_CHROOT/etc
+  fi
+  if [ ! -d $UNBOUND_CHROOT/dev ]; then
+    mkdir -p $UNBOUND_CHROOT/dev
+  fi
+
+  # Install/update timezone file (if necessary).
+  if [ -f /etc/localtime -a \
+    ! -f $UNBOUND_CHROOT/etc/localtime -o \
+    "$(cat /etc/localtime | md5sum)" != \
+    "$(cat $UNBOUND_CHROOT/etc/localtime | md5sum)" ]; then
+      cp /etc/localtime $UNBOUND_CHROOT/etc/localtime
+  fi
+
+  # Basic checks.
+  if [ -r $UNBOUND_PIDFILE ]; then
+    echo "unbound is running as pid $(cat $UNBOUND_PIDFILE)"
+    exit 1
+  fi
+
+  unbound-checkconf >/dev/null 2>/dev/null
+  if [ $? -ne 0 ]; then
+    echo "Starting unbound: invalid configuration (see unbound-checkconf)"
+    exit 1
+  fi
+
+  # Mount `/dev/log` and `/dev/urandom` if necessary.
+  if [ ! -e $UNBOUND_CHROOT/dev/log ]; then
+    touch $UNBOUND_CHROOT/dev/log
+  fi
+  if [ ! -e $UNBOUND_CHROOT/dev/urandom ]; then
+    touch $UNBOUND_CHROOT/dev/urandom
+  fi
+
+  # Mount `log` and `urandom` if not mounted.
+  is_mounted=$(mount | cut -d ' ' -f 3 | egrep "^$UNBOUND_CHROOT/dev/log$")
+  if [ -z "$is_mounted" ]; then
+    mount --bind --no-mtab /dev/log $UNBOUND_CHROOT/dev/log
+  fi
+
+  is_mounted=$(mount | cut -d ' ' -f 3 | egrep "^$UNBOUND_CHROOT/dev/urandom$")
+  if [ -z "$is_mounted" ]; then
+    mount --bind --no-mtab /dev/log $UNBOUND_CHROOT/dev/urandom
+  fi
+
+  echo "Starting unbound: /usr/sbin/unbound"
+  /usr/sbin/unbound
+}
+
+unbound_stop() {
+  echo "Stopping unbound..."
+
+  if [ -r $UNBOUND_PIDFILE ]; then
+    kill $(cat $UNBOUND_PIDFILE)
+    rm $UNBOUND_PIDFILE
+  else
+    killall -q unbound
+  fi
+
+  sleep 1
+
+  is_mounted=$(mount | cut -d ' ' -f 3 | egrep "^$UNBOUND_CHROOT/dev/log$")
+  if [ ! -z $is_mounted ]; then
+    umount $UNBOUND_CHROOT/dev/log
+  fi
+
+  is_mounted=$(mount | cut -d ' ' -f 3 | egrep "^$UNBOUND_CHROOT/dev/urandom$")
+  if [ ! -z $is_mounted ]; then
+    umount $UNBOUND_CHROOT/dev/urandom
+  fi
+}
+
+unbound_status() {
+  if [ -r $UNBOUND_PIDFILE ]; then
+    echo "unbound is running as pid $(cat $UNBOUND_PIDFILE)."
+  else
+    echo "unbound is stopped."
+    exit 1
+  fi
+}
+
+case "$1" in
+  'start')
+    unbound_start
+    ;;
+  'stop')
+    unbound_stop
+    ;;
+  'restart')
+    unbound_stop
+    sleep 1
+    unbound_start
+    ;;
+  'status')
+    unbound_status
+    ;;
+
+  *)
+    ;;
+esac
