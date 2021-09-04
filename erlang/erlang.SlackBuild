@@ -1,119 +1,136 @@
-#!/bin/sh -e
-
-# Slackware build script for erlang
-
-# Copyright (C) 2020 Rafael F. Zalamena
+#!/bin/sh
 #
-# Permission to use, copy, modify, and/or distribute this software for any
-# purpose with or without fee is hereby granted, provided that the above
-# copyright notice and this permission notice appear in all copies.
+# Copyright (C) 2021 Rafael F. Zalamena
+# All rights reserved.
 #
-# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
-# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
-# OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-# PERFORMANCE OF THIS SOFTWARE.
+# Redistribution and use of this script, with or without modification, is
+# permitted provided that the following conditions are met:
+#
+# 1. Redistributions of this script must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT,
+# INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+# STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+# IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
 
 # Change log
 #
+# 2021-09-04:
+#   Rewrite slackbuild with new template, change license.
 # 2020-12-19:
 #   Initial slackbuild version.
 
+cd $(dirname $0) ; CWD=$(pwd)
+
 PKGNAM=erlang
-VERSION=${VERSION:-23.2}
+VERSION=${VERSION:-24.0}
 BUILD=${BUILD:-1}
-NUMJOBS="-j$(expr $(nproc) + 1)"
+PKGTYPE=${PKGTYPE:-txz}
 
 if [ -z "$ARCH" ]; then
   case "$(uname -m)" in
-    i?86) ARCH=i586 ;;
-    arm*) ARCH=arm ;;
-    *) ARCH=$(uname -m)
+    i?86) export ARCH=i586 ;;
+    arm*) export ARCH=arm ;;
+    *) export ARCH=$(uname -m) ;;
   esac
 fi
 
-if [ "$ARCH" = "i586" ]; then
+if [ "$ARCH" = "i486" ]; then
+  SLKCFLAGS="-O2 -march=i486 -mcpu=i686"
+  LIBDIRSUFFIX=""
+elif [ "$ARCH" = "i586" ]; then
   SLKCFLAGS="-O2 -march=i586 -mtune=i686"
   LIBDIRSUFFIX=""
 elif [ "$ARCH" = "i686" ]; then
-  SLKCFLAGS="-O2 -march=i686 -mtune=i686"
+  SLKCFLAGS="-O2 -march=i686"
+  LIBDIRSUFFIX=""
+elif [ "$ARCH" = "s390" ]; then
+  SLKCFLAGS="-O2"
   LIBDIRSUFFIX=""
 elif [ "$ARCH" = "x86_64" ]; then
   SLKCFLAGS="-O2 -fPIC"
   LIBDIRSUFFIX="64"
+elif [ "$ARCH" = "armv7hl" ]; then
+  SLKCFLAGS="-O3 -march=armv7-a -mfpu=vfpv3-d16"
+  LIBDIRSUFFIX=""
 else
   SLKCFLAGS="-O2"
   LIBDIRSUFFIX=""
 fi
 
-CWD=$(pwd)
-TMP=${TMP:-/tmp}
-PKG=$TMP/package-$PKGNAM
+NUMJOBS=${NUMJOBS:-" -j$(nproc) "}
 
+TMP=${TMP:-/tmp/slackbuild}
+PKG=${PKG:-$TMP/package-$PKGNAM}
 rm -rf $PKG
-mkdir -p $PKG
+mkdir -p $TMP $PKG
 
 cd $TMP
-tar -xvzf $CWD/otp_src_$VERSION.tar.gz
+rm -rf otp_src_$VERSION
 
-# Compile and install erlang:
-SRCDIR=$TMP/otp_src_$VERSION
-cd $SRCDIR
-
+tar -xvzf $CWD/otp_src_$VERSION.tar.gz || exit 1
+cd otp_src_$VERSION
+CFLAGS="$SLKCFLAGS" \
+CXXFLAGS="$SLKCFLAGS" \
 ./configure \
   --prefix=/usr \
   --libdir=/usr/lib$LIBDIRSUFFIX \
-  --build=$ARCH-slackware-linux
+  --sysconfdir=/etc \
+  --localstatedir=/var \
+  --mandir=/usr/man \
+  --docdir=/usr/doc/$PKGNAM-$VERSION \
+  --build=$ARCH-slackware-linux \
+  || exit 1
 
-make $NUMJOBS
-make INSTALL_PREFIX=$PKG install
+make $NUMJOBS || exit 1
+make INSTALL_PREFIX=$PKG install || exit 1
 
-# Install and compress man pages:
-MANDIR=$TMP/erlang-man-pages
-mkdir -p $MANDIR
-cd $MANDIR
-tar -xvzf $CWD/otp_doc_man_$VERSION.tar.gz
-
-for file in $(find man -type f); do
-  install -o root -g root -m 0755 -v -D \
-    $file $PKG/usr/lib$LIBDIRSUFFIX/erlang/$file
-done
+# Install and compress man pages.
+#
+# NOTE:
+# They are not installed in /usr/man because erlang has man pages with
+# duplicated names.
+ERL_MANDIR=/usr/lib$LIBDIRSUFFIX/erlang/man
+mkdir -p ${PKG}${ERL_MANDIR}
+tar -C ${PKG}${ERL_MANDIR} -xvzf $CWD/otp_doc_man_$VERSION.tar.gz || exit 1
 
 # Compress all man pages:
-find $PKG/usr/lib$LIBDIRSUFFIX/erlang/man \
-  -name \*\.? -type f -exec gzip -9 {} \+
+find ${PKG}${ERL_MANDIR} -name \*\.? -type f -exec gzip -9 {} \+
 
-# Install environment variables:
-install -o root -g root -m 0755 -v -D \
-  $CWD/erlang-profile.sh \
-  $PKG/etc/profile.d/erlang.sh
-install -o root -g root -m 0755 -v -D \
-  $CWD/erlang-profile.csh \
-  $PKG/etc/profile.d/erlang.csh
+# Install environment variables.
+mkdir -p $PKG/etc/profile.d
 
-# Adjust environment path for 64bit systems.
-if [ "$LIBDIRSUFFIX" = '64' ]; then
-  sed -i 's|/usr/lib/erlang/man|/usr/lib64/erlang/man|' \
-    $PKG/etc/profile.d/erlang.sh
-  sed -i 's|/usr/lib/erlang/man|/usr/lib64/erlang/man|' \
-    $PKG/etc/profile.d/erlang.csh
+cat > $PKG/etc/profile.d/erlang.sh <<EOF
+#!/bin/sh
+if [ -z "\$MANPATH" ]; then
+  export MANPATH="$ERL_MANDIR"
+else
+  export MANPATH="\$MANPATH:$ERL_MANDIR"
 fi
+EOF
 
-# Install slackware related files:
-install -o root -g root -m 0755 -v -D \
-  $CWD/$PKGNAM.SlackBuild \
-  $PKG/usr/doc/$PKGNAM-$VERSION/$PKGNAM.SlackBuild
-install -o root -g root -m 0644 -v -D \
-  -t $PKG/usr/doc/$PKGNAM-$VERSION \
-  $SRCDIR/AUTHORS \
-  $SRCDIR/CONTRIBUTING.md \
-  $SRCDIR/LICENSE.txt \
-  $SRCDIR/README.md
+cat > $PKG/etc/profile.d/erlang.csh <<EOF
+#!/bin/csh
+if (! \$?MANPATH) then
+  setenv MANPATH "$ERL_MANDIR"
+else
+  setenv MANPATH "\$MANPATH"":$ERL_MANDIR"
+endif
+EOF
 
-install -o root -g root -m 0644 -v -D \
-  $CWD/slack-desc $PKG/install/slack-desc
+chmod -v a+x $PKG/etc/profile.d/erlang.sh $PKG/etc/profile.d/erlang.csh
+
+mkdir -p $PKG/install
+cat $CWD/doinst.sh > $PKG/install/doinst.sh
+cat $CWD/slack-desc > $PKG/install/slack-desc
 
 cd $PKG
-/sbin/makepkg -l y -c n $TMP/$PKGNAM-$VERSION-$ARCH-$BUILD.txz
+/sbin/makepkg -l y -c n $TMP/$PKGNAM-$VERSION-$ARCH-$BUILD.$PKGTYPE

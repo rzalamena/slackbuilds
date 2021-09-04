@@ -1,0 +1,13 @@
+PRGNAME="erlang"
+VERSION="24.0"
+HOMEPAGE="https://www.erlang.org/"
+DOWNLOAD=" \
+  https://erlang.org/download/otp_src_24.0.tar.gz \
+  https://erlang.org/download/otp_doc_man_24.0.tar.gz \
+  "
+MD5SUM="7227024b8619e4d97a7af4f4cf98d4db 14194aaad0295ebfafc688cdd9c2dc64"
+DOWNLOAD_x86_64=""
+MD5SUM_x86_64=""
+REQUIRES=""
+MAINTAINER="Rafael F. Zalamena"
+EMAIL="rzalamena@gmail.com"
