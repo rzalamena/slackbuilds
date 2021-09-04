@@ -1,0 +1,17 @@
+Linux kernel package with XanMod patch set for desktop usage.
+
+Features:
+ - Scheduler tuned at 500Hz frequency (good compromise between
+   interactiveness and power saving).
+ - Tickless kernel (requires boot command line tweak: nohz_full=...)
+ - RCU boost to increase desktop responsiveness
+ - BBRv2 TCP congestion control (needs sysctl:
+   net.ipv4.tcp_congestion_control to bbr)
+ - Third party patch sets:
+   - CK's high-resolution kernel timers (hrtimer)
+   - FUTEX WAIT_MULTIPLE for wine/proton fsync
+   - FUTEX2 for wine/proton fsync
+   - Google's multigenerational LRU framework
+   - Paragon's Software NTFS3 driver
+   - Clear Linux patchset
+   - Updated ZSTD with performance improvement
