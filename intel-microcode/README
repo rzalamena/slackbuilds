@@ -1,1 +1,16 @@
 Intel tool and binaries for patching CPU microcodes.
+
+Grub Usage
+----------
+
+Append the following line to your `/etc/default/grub`:
+
+  GRUB_EARLY_INITRD_LINUX_CUSTOM="intel-ucode.cpio"
+
+Now re-run `grub-mkconfig -o /boot/grub/grub.cfg` and its done.
+
+You can verify that the intel microcode update initrd will be used by
+grepping your `/boot/grub/grub.cfg`:
+
+  $ grep 'intel-ucode.cpio' /boot/grub/grub.cfg 
+  initrd  /root/boot/intel-ucode.cpio /root/boot/initrd.gz
