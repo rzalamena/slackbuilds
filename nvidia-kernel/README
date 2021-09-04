@@ -1,1 +1,26 @@
 Proprietary NVIDIA Linux kernel driver to enable video acceleration.
+
+Module for extra kernel
+-----------------------
+
+By default this slackbuild will compile the module for the running
+kernel. This is controlled via the following variables:
+ - KERN (kernel release + suffer): defaults to `uname -r`.
+ - KERNDIR (kernel source code path): defaults to
+   `/usr/src/linux-$(uname -r)`.
+ - PKGSUFFIX (extra suffix so multiple versions can be installed at the
+   same time): defaults to empty string ('').
+
+Building module for a custom kernel:
+  sudo \
+    env KERN=5.13.13-xanmod1 \
+        KERNDIR=/tmp/slackbuild/linux-5.13 \
+        PKGSUFFIX=xanmod \
+    sh nvidia-kernel.SlackBuild
+
+NOTE
+----
+
+`KERN` must match your `uname -r` because that is where this slackbuild
+will install the modules (e.g. `/lib/modules/$(uname -r)`) and where
+your kernel will look for modules.

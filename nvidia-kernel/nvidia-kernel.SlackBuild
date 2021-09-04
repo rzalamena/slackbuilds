@@ -29,6 +29,7 @@ BUILD=${BUILD:-1}
 PKGTYPE=${PKGTYPE:-txz}
 KERN=${KERN:-$(uname -r)}
 KERNDIR=${KERNDIR:-/usr/src/linux-$KERN}
+PKGSUFFIX=${PKGSUFFIX:-}
 
 if [ -z "$ARCH" ]; then
   case "$(uname -m)" in
@@ -75,7 +76,7 @@ sh $CWD/NVIDIA-Linux-${ARCH}-${VERSION}.run --extract-only
 cd NVIDIA-Linux-${ARCH}-${VERSION} || exit 1
 ( \
   cd kernel ; \
-  make $NUMJOBS SYSRC=$KERNDIR module || exit 1 \
+  make $NUMJOBS SYSRC=$KERNDIR SYSOUT=$KERNDIR module || exit 1 \
 )
 
 mkdir -p $PKG/lib/modules/$KERN/kernel/drivers/video
@@ -85,35 +86,13 @@ for file in nvidia.ko nvidia-drm.ko nvidia-modeset.ko \
     $PKG/lib/modules/$KERN/kernel/drivers/video/$file
 done
 
-mkdir -p $PKG/lib/firmware/nvidia/$VERSION
-install -o root -g root -m 0644 -v firmware/gsp.bin \
-  $PKG/lib/firmware/nvidia/$VERSION/gsp.bin
-
-mkdir -p $PKG/lib/modprobe.d
-cat > $PKG/lib/modprobe.d/nvidia.conf.new <<EOF
-# To use proprietary driver we must disable the open source one.
-blacklist nouveau
-options nouveau modeset=0
-
-# Don't use NVIDIA preserved memory allocations for suspension.
-options nvidia \\
-  NVreg_PreserveVideoMemoryAllocations=0 \\
-  NVreg_TemporaryFilePath=/var/tmp
-
-# NVIDIA permissions settings.
-options nvidia \\
-  NVreg_DeviceFileGID=18 \\
-  NVreg_DeviceFileMode=0660 \\
-  NVreg_DeviceFileUID=0 \\
-  NVreg_ModifyDeviceFiles=1
-
-# (Experimental) NVIDIA kernel mode setting.
-#options nvidia-drm modeset=1
-EOF
-
 mkdir -p $PKG/install
 sed "s/@KERN@/$KERN/" $CWD/doinst.sh > $PKG/install/doinst.sh
 cat $CWD/slack-desc > $PKG/install/slack-desc
 
 cd $PKG
-/sbin/makepkg -l y -c n $TMP/$PKGNAM-$VERSION-$ARCH-$BUILD.$PKGTYPE
+if [ -z $PKGSUFFIX ]; then
+  /sbin/makepkg -l y -c n $TMP/$PKGNAM-$VERSION-$ARCH-$BUILD.$PKGTYPE
+else
+  /sbin/makepkg -l y -c n $TMP/$PKGNAM-$PKGSUFFIX-$VERSION-$ARCH-$BUILD.$PKGTYPE
+fi
