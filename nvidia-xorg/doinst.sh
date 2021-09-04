@@ -11,6 +11,7 @@ config() {
   # Otherwise, we leave the .new copy for the admin to consider...
 }
 
+config lib/modprobe.d/nvidia.conf.new
 config usr/share/X11/xorg.conf.d/99-nvidia-drm-outputclass.conf.new
 
 if [ -x /usr/bin/update-desktop-database ]; then
