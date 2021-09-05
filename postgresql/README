@@ -1,0 +1,37 @@
+PostgreSQL is a powerful, open source object-relational database system
+with over 30 years of active development that has earned it a strong
+reputation for reliability, feature robustness, and performance.
+
+
+User / Group
+------------
+
+To run postgresql without root privileges you must add the following user
+and group:
+
+  # /usr/sbin/groupadd -g 209 postgres
+  # /usr/sbin/useradd -d /var/lib/pgsql -s /sbin/nologin -u 209 \
+      -g postgres postgres
+
+
+Quick Start
+-----------
+
+> NOTE:
+> If you are using BTRFS, you might want to set no-cow attribute on the
+> PostgreSQL database directory:
+>   # chattr +C /var/lib/pgsql
+
+Create PostgreSQL database directory:
+  # sudo --set-home --user=postgres initdb -D /var/lib/pgsql/13
+
+(the `13` at the end assumes this is PostgreSQL version 13.x).
+
+Start PostgreSQL service:
+
+  # /etc/rc.d/rc.postgresql start
+
+Don't forget to put PostgreSQL initialization/shutdown calls on your
+`/etc/rc.d/rc.local` (initialization) and `/etc/rc.d/rc.local_shutdown`
+(shutdown) files, otherwise you might boot up without PostgreSQL or get
+corrupted files on a reboot.
