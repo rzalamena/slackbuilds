@@ -78,7 +78,8 @@ cmake -B build \
   -DCMAKE_INSTALL_PREFIX=/usr \
   -DCMAKE_INSTALL_LIBDIR=lib64 \
   -DCMAKE_INSTALL_MANDIR=/usr/man \
-  -DCMAKE_INSTALL_DOCDIR=/usr/doc/$PKGNAM-$VERSION
+  -DCMAKE_INSTALL_DOCDIR=/usr/doc/$PKGNAM-$VERSION \
+  || exit 1
 cd build
 make $NUMJOBS
 make DESTDIR=$PKG install
