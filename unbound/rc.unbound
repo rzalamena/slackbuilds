@@ -68,21 +68,22 @@ unbound_status() {
 }
 
 case "$1" in
-  'start')
-    unbound_start
-    ;;
-  'stop')
-    unbound_stop
-    ;;
-  'restart')
-    unbound_stop
-    sleep 1
-    unbound_start
-    ;;
-  'status')
-    unbound_status
-    ;;
+'start')
+  unbound_start
+  ;;
+'stop')
+  unbound_stop
+  ;;
+'restart')
+  unbound_stop
+  sleep 1
+  unbound_start
+  ;;
+'status')
+  unbound_status
+  ;;
 
-  *)
-    ;;
+*)
+  echo "usage $0 start|stop|restart|status"
+  ;;
 esac
