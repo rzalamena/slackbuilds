@@ -99,6 +99,12 @@ if [ ! -f chromium-$VERSION/.patched ]; then
   rm -rf ungoogled-chromium-$VERSION-$VERSION_REV chromium-$VERSION
   tar -xzf $CWD/$VERSION-$VERSION_REV.tar.gz
   tar --xz -xf $CWD/chromium-$VERSION.tar.xz
+
+  # Extract widevine component from proprietary version.
+  ar p $CWD/google-chrome-stable_$VERSION-1_amd64.deb data.tar.xz \
+    | tar --xz -xvf - ./opt/google/chrome/WidevineCdm || exit 1
+  mv -v opt/google/chrome/WidevineCdm WidevineCdm || exit 1
+  rm -rf opt
 fi
 
 SRCDIR=$TMP/ungoogled-chromium-$VERSION-$VERSION_REV
@@ -228,6 +234,10 @@ for size in 24 48 64 128 256; do
     $PKG/usr/share/icons/hicolor/${size}x${size}/apps/chromium-browser.png \
     || exit 1
 done
+
+# Install widevine binary:
+cp -rv $TMP/WidevineCdm \
+  $PKG/usr/lib$LIBDIRSUFFIX/chromium-browser/WinevineCdm || exit 1
 
 mkdir -p $PKG/install
 cat $CWD/doinst.sh > $PKG/install/doinst.sh
