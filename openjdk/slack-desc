@@ -1,0 +1,19 @@
+# HOW TO EDIT THIS FILE:
+# The "handy ruler" below makes it easier to edit a package description.
+# Line up the first '|' above the ':' following the base package name, and
+# the '|' on the right side marks the last column you can put a character in.
+# You must make exactly 11 lines for the formatting to be correct.  It's also
+# customary to leave one space after the ':' except on otherwise blank lines.
+
+       |-----handy-ruler------------------------------------------------------|
+openjdk: openjdk (programming language)
+openjdk:
+openjdk: The world’s most popular modern development platform, Java SE reduces
+openjdk: costs, shortens development time, drives innovation, and improves
+openjdk: application services as the programming language of choice for
+openjdk: enterprise applications. Protect your Java investment with Oracle
+openjdk: Java SE Subscription, which now includes GraalVM Enterprise and Java
+openjdk: Management Service for free.
+openjdk:
+openjdk:
+openjdk:

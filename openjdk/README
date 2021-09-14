@@ -1,0 +1,15 @@
+The world’s most popular modern development platform, Java SE reduces
+costs, shortens development time, drives innovation, and improves
+application services as the programming language of choice for
+enterprise applications. Protect your Java investment with Oracle Java
+SE Subscription, which now includes GraalVM Enterprise and Java
+Management Service for free.
+
+
+Man Pages
+---------
+
+Don't forget to include the following line in `/etc/man_db.conf` to
+index and find java man pages:
+
+  MANDATORY_MANPATH /opt/jdk-$VERSION/man
