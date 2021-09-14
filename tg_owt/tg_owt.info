@@ -1,0 +1,16 @@
+PRGNAME="tg_owt"
+VERSION="1.0"
+HOMEPAGE="https://github.com/desktop-app/tg_owt"
+DOWNLOAD=" \
+  https://github.com/desktop-app/tg_owt/archive/91d836dc84a16584c6ac52b36c04c0de504d9c34.tar.gz \
+  https://chromium.googlesource.com/libyuv/libyuv/+archive/eb6e7bb63738e29efd82ea3cf2a115238a89fa51.tar.gz \
+  "
+MD5SUM=" \
+  7c84495cb11b5abcd4172341e160bba3 \
+  e347e6eb459c738bf09e0282d7a40fd3 \
+  "
+DOWNLOAD_x86_64=""
+MD5SUM_x86_64=""
+REQUIRES="protobuf libopenh264"
+MAINTAINER="Rafael F. Zalamena"
+EMAIL="rzalamena@gmail.com"
