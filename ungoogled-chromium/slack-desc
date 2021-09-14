@@ -12,7 +12,7 @@ ungoogled-chromium: Ungoogled chromium is a collection of patches that remove Go
 ungoogled-chromium: integration, tune privacy settings and remove blobs from source
 ungoogled-chromium: code.
 ungoogled-chromium:
-ungoogled-chromium:
-ungoogled-chromium:
+ungoogled-chromium: Chromium home: https://www.chromium.org/
+ungoogled-chromium: ungoogled chromium home: https://ungoogled-software.github.io/
 ungoogled-chromium:
 ungoogled-chromium:

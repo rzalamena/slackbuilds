@@ -237,7 +237,7 @@ done
 
 # Install widevine binary:
 cp -rv $TMP/WidevineCdm \
-  $PKG/usr/lib$LIBDIRSUFFIX/chromium-browser/WinevineCdm || exit 1
+  $PKG/usr/lib$LIBDIRSUFFIX/chromium-browser/WidevineCdm || exit 1
 
 mkdir -p $PKG/install
 cat $CWD/doinst.sh > $PKG/install/doinst.sh
