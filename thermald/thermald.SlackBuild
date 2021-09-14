@@ -96,12 +96,12 @@ find $PKG -type f -exec file {} \+ \
   | cut -d ':' -f 1 \
   | xargs strip --strip-unneeded
 
-# Move configuration file so it can be considered by system admin.
+# Rename configuration file so it can be considered by system admin.
 mv -v $PKG/etc/thermald/thermal-cpu-cdev-order.xml \
-  $PKG/etc/thermald/thermal-cpu-cdev-order.xml.new
+  $PKG/etc/thermald/thermal-conf.xml.new
 
 # Install init script.
-install -o root -g root -m 0644 -v -D \
+install -o root -g root -m 0755 -v -D \
   $CWD/rc.thermald $PKG/etc/rc.d/rc.thermald.new
 
 mkdir -p $PKG/install

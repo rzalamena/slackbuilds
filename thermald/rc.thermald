@@ -13,17 +13,48 @@
 # OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 
-case "$1" in
-  'start')
-    pgrep -f '^/usr/sbin/thermald' >/dev/null 2>/dev/null
-    if [ $? -eq 0 ]; then
-      echo 'thermald is already running'
-    else
-      /usr/sbin/thermald
-    fi
-    ;;
+thermald_start() {
+  pgrep -f '^/usr/sbin/thermald' >/dev/null 2>/dev/null
+  if [ $? -eq 0 ]; then
+    echo "thermald is already running"
+  else
+    echo "Starting thermald: /usr/sbin/thermald"
+    /usr/sbin/thermald
+  fi
+}
 
-  'stop')
-    pkill -f '^/usr/sbin/thermald'
-    ;;
+thermald_stop() {
+  echo "Stopping thermald..."
+  pkill -f '^/usr/sbin/thermald'
+}
+
+thermald_status() {
+  pgrep -f '^/usr/sbin/thermald' >/dev/null 2>/dev/null
+  if [ $? -eq 0 ]; then
+    echo "thermald is running"
+  else
+    echo "thermald is not running"
+    exit 1
+  fi
+}
+
+case "$1" in
+'start')
+  thermald_start
+  ;;
+'stop')
+  thermald_stop
+  ;;
+'restart')
+  thermald_stop
+  sleep 1
+  thermald_start
+  ;;
+'status')
+  thermald_status
+  ;;
+
+*)
+  echo "usage $0 start|stop|restart|status"
+  ;;
 esac

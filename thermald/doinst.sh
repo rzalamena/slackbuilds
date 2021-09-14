@@ -22,5 +22,5 @@ preserve_perms() {
   config $NEW
 }
 
-config etc/thermald/thermal-cpu-cdev-order.xml.new
+config etc/thermald/thermal-conf.xml.new
 preserve_perms etc/rc.d/rc.thermald.new
