@@ -1,0 +1,3 @@
+iotop identifies processes that use high amount of input/output requests on
+your machine. It is similar to the well known top utility, but instead of
+showing you what consumes CPU the most, it lists processes by their IO usage.
