@@ -1,0 +1,19 @@
+# HOW TO EDIT THIS FILE:
+# The "handy ruler" below makes it easier to edit a package description.
+# Line up the first '|' above the ':' following the base package name, and
+# the '|' on the right side marks the last column you can put a character in.
+# You must make exactly 11 lines for the formatting to be correct.  It's also
+# customary to leave one space after the ':' except on otherwise blank lines.
+
+          |-----handy-ruler------------------------------------------------------|
+apache-ant: apache-ant (development tool)
+apache-ant:
+apache-ant: Apache Ant is a Java library and command-line tool whose mission is
+apache-ant: to drive processes described in build files as targets and extension
+apache-ant: points dependent upon each other. The main known usage of Ant is the
+apache-ant: build of Java applications. Ant supplies a number of built-in tasks
+apache-ant: allowing to compile, assemble, test and run Java applications. Ant
+apache-ant: can also be used effectively to build non Java applications, for
+apache-ant: instance C or C++ applications. More generally, Ant can be used to
+apache-ant: pilot any type of process which can be described in terms of targets
+apache-ant: and tasks.
