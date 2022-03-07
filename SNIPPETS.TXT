@@ -8,8 +8,8 @@ Source Configuration
 
 Configuration options may vary, please check `./configure --help`.
 
-	CFLAGS="$SLKCFLAGS" \
-	CXXFLAGS="$SLKCFLAGS" \
+  CFLAGS="$SLKCFLAGS" \
+  CXXFLAGS="$SLKCFLAGS" \
 	./configure \
     --prefix=/usr \
     --libdir=/usr/lib$LIBDIRSUFFIX \
