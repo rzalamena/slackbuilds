@@ -5,4 +5,6 @@
 #export TZ='Etc/UTC'
 
 # Options to pass to ungoogled-chromium.
-#CHROMIUM_FLAGS=""
+CHROMIUM_FLAGS="--enable-features=VaapiVideoDecoder"
+CHROMIUM_FLAGS="${CHROMIUM_FLAGS} --disable-features=UseChromeOSDirectVideoDecoder"
+CHROMIUM_FLAGS="${CHROMIUM_FLAGS} --gtk-version=4"
