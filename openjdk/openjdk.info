@@ -1,5 +1,5 @@
 PRGNAME="openjdk"
-VERSION="16.0.2"
+VERSION="11.0.11"
 HOMEPAGE="http://openjdk.java.net"
 DOWNLOAD=""
 MD5SUM=""
